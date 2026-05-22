@@ -1,0 +1,78 @@
+/* Palette override only — the default theme handles type, layout,
+   whitespace, archetype defaults. We give the deck its identity with
+   a slate dominant and one teal accent. */
+:root {
+  --wb-color-dominant: #0F172A;
+  --wb-color-accent:   #14B8A6;
+  --wb-color-bg:       #F8FAFC;
+  --wb-color-text:     #0F172A;
+  --wb-color-muted:    #475569;
+}
+
+/* Logo strip used on the section openers and a couple of content
+   slides. Greyscale via filter so the wall reads as a uniform set
+   regardless of which source each SVG resolved from. */
+.logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+.logo-row img {
+  height: 56px;
+  width: auto;
+  filter: grayscale(1) opacity(0.7);
+}
+.logo-row.color img {
+  filter: none;
+}
+
+/* Inline SVG bar chart styling. The chart slides use raw <svg> so the
+   deck stays self-contained — no charting lib, no runtime fetch. */
+.chart {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.chart text {
+  fill: var(--wb-color-text);
+  font-family: inherit;
+  font-size: 18px;
+}
+.chart .axis text {
+  fill: var(--wb-color-muted);
+  font-size: 16px;
+}
+.chart .bar {
+  fill: var(--wb-color-dominant);
+}
+.chart .bar.accent {
+  fill: var(--wb-color-accent);
+}
+.chart .label {
+  font-weight: 600;
+}
+.chart figcaption {
+  color: var(--wb-color-muted);
+  font-size: 0.85em;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* Three-rail comparison column on the RTP/FedNow slide. */
+.three-col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.5rem;
+  margin-top: 2rem;
+  width: 100%;
+}
+.three-col h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--wb-color-accent);
+}
+.three-col p {
+  margin: 0.25rem 0;
+}

@@ -1,0 +1,331 @@
+/* Custom theme — "What 'specialty' coffee actually means"
+   Editorial / craft. Warm paper, espresso ink, single warm-orange
+   accent the color of light-roast Yirgacheffe held to light.
+   Implements design.md > "Design / theme" exactly. */
+
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  /* Palette — 1 dominant + 1 accent + 2 neutrals */
+  --wb-color-dominant: #2B1810;   /* espresso brown — body ink */
+  --wb-color-accent:   #C8643C;   /* light-roast orange */
+  --wb-color-bg:       #F5EFE6;   /* warm paper / unbleached cream */
+  --wb-color-text:     #2B1810;   /* single ink — matches dominant */
+  --wb-color-muted:    #8A7968;   /* dusty taupe — captions, footers */
+
+  /* Typography — 2 fonts only */
+  --wb-font-display:   "Fraunces", "Iowan Old Style", "Georgia", serif;
+  --wb-font-body:      "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Sizing — slightly larger title, generous slide padding for editorial breathing */
+  --wb-slide-padding:  112px;
+  --wb-title-size:     104px;
+  --wb-section-size:   144px;
+  --wb-stat-size:      280px;
+  --wb-body-size:      34px;
+  --wb-line-height:    1.4;
+}
+
+/* Base type — assert the serif display + the cream paper everywhere */
+.workbook-presentation {
+  background: var(--wb-color-bg);
+  color: var(--wb-color-text);
+  font-family: var(--wb-font-body);
+}
+
+.workbook-presentation h1,
+.workbook-presentation h2,
+.workbook-presentation h3 {
+  font-family: var(--wb-font-display);
+  font-weight: 600;
+  font-variation-settings: "opsz" 144;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+
+/* Title slide — display serif, generous left-aligned editorial composition */
+.workbook-presentation .wb-slide--title .wb-slide-inner {
+  align-items: flex-start;
+  text-align: left;
+}
+.workbook-presentation .wb-slide--title h1 {
+  font-size: 128px;
+  font-weight: 800;
+  max-width: 18ch;
+}
+.workbook-presentation .wb-slide--title p {
+  color: var(--wb-color-muted);
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 32px;
+}
+
+/* PER-ARCHETYPE MOVE 1 — section slides get an editorial "01 /" eyebrow */
+.workbook-presentation .wb-slide--section .wb-slide-inner {
+  position: relative;
+  padding-top: 120px;
+}
+.workbook-presentation .wb-slide--section h1::before {
+  content: attr(data-eyebrow);
+  display: block;
+  color: var(--wb-color-accent);
+  font-family: var(--wb-font-body);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  margin-bottom: 40px;
+}
+
+/* PER-ARCHETYPE MOVE 2 — stat slides: tight accent underline + unit label */
+.workbook-presentation .wb-slide--stat .wb-slide-inner {
+  align-items: flex-start;
+  text-align: left;
+}
+.workbook-presentation .wb-slide--stat .huge {
+  font-family: var(--wb-font-display);
+  font-size: var(--wb-stat-size);
+  font-weight: 800;
+  font-variation-settings: "opsz" 144;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  border-bottom: 6px solid var(--wb-color-accent);
+  padding-bottom: 24px;
+  display: inline-block;
+  margin: 0;
+}
+.workbook-presentation .wb-slide--stat .huge .unit {
+  font-size: 0.28em;
+  color: var(--wb-color-muted);
+  font-weight: 500;
+  vertical-align: 0.55em;
+  margin-left: 0.2em;
+  letter-spacing: 0;
+}
+.workbook-presentation .wb-slide--stat .caption {
+  font-size: 36px;
+  max-width: 22ch;
+  margin-top: 40px;
+  color: var(--wb-color-text);
+}
+
+/* PER-ARCHETYPE MOVE 3 — quote slide: left accent rule + hanging open-quote */
+.workbook-presentation .wb-slide--quote .wb-slide-inner {
+  align-items: flex-start;
+  text-align: left;
+  padding-left: 160px;
+}
+.workbook-presentation .wb-slide--quote blockquote {
+  font-family: var(--wb-font-display);
+  font-size: 64px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  max-width: 22ch;
+  position: relative;
+  border-left: 6px solid var(--wb-color-accent);
+  padding-left: 48px;
+  margin: 0;
+}
+.workbook-presentation .wb-slide--quote blockquote::before {
+  content: "\201C";
+  position: absolute;
+  left: -28px;
+  top: -48px;
+  font-size: 180px;
+  color: var(--wb-color-accent);
+  font-family: var(--wb-font-display);
+  line-height: 1;
+}
+.workbook-presentation .wb-slide--quote cite {
+  display: block;
+  margin-top: 40px;
+  margin-left: 54px;
+  color: var(--wb-color-muted);
+  font-style: normal;
+  font-size: 24px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Content slides — editorial left-align, headline + lede pattern */
+.workbook-presentation .wb-slide--content .wb-slide-inner {
+  align-items: flex-start;
+  text-align: left;
+}
+.workbook-presentation .wb-slide--content h2 {
+  font-size: 80px;
+  font-weight: 600;
+  max-width: 18ch;
+  margin: 0 0 40px 0;
+}
+.workbook-presentation .wb-slide--content p {
+  font-size: 36px;
+  line-height: 1.45;
+  max-width: 26ch;
+  color: var(--wb-color-muted);
+}
+.workbook-presentation .wb-slide--content p strong,
+.workbook-presentation .wb-slide--content p b {
+  color: var(--wb-color-text);
+  font-weight: 600;
+}
+
+/* Comparison — two/three columns with a hairline between, editorial style */
+.workbook-presentation .wb-slide--comparison .wb-slide-inner {
+  align-items: stretch;
+}
+.workbook-presentation .wb-slide--comparison h2 {
+  font-size: 64px;
+  margin-bottom: 56px;
+}
+.workbook-presentation .wb-slide--comparison .cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--wb-color-muted);
+}
+.workbook-presentation .wb-slide--comparison .cols.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.workbook-presentation .wb-slide--comparison .col {
+  padding: 48px 40px 0 0;
+  border-right: 1px solid var(--wb-color-muted);
+}
+.workbook-presentation .wb-slide--comparison .col:not(:first-child) {
+  padding-left: 40px;
+}
+.workbook-presentation .wb-slide--comparison .col:last-child {
+  border-right: none;
+}
+.workbook-presentation .wb-slide--comparison .col h3 {
+  font-family: var(--wb-font-body);
+  font-size: 22px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--wb-color-accent);
+  margin: 0 0 20px 0;
+}
+.workbook-presentation .wb-slide--comparison .col .origin {
+  font-family: var(--wb-font-display);
+  font-size: 48px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+.workbook-presentation .wb-slide--comparison .col p {
+  font-size: 24px;
+  color: var(--wb-color-text);
+  line-height: 1.45;
+}
+.workbook-presentation .wb-slide--comparison .col p.notes {
+  color: var(--wb-color-muted);
+  font-size: 22px;
+  margin-top: 12px;
+}
+
+/* Process — numbered editorial steps */
+.workbook-presentation .wb-slide--process h2 {
+  font-size: 64px;
+  margin-bottom: 64px;
+}
+.workbook-presentation .wb-slide--process .steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+.workbook-presentation .wb-slide--process .step {
+  border-top: 2px solid var(--wb-color-accent);
+  padding-top: 24px;
+}
+.workbook-presentation .wb-slide--process .step .n {
+  font-family: var(--wb-font-display);
+  font-size: 48px;
+  font-weight: 600;
+  color: var(--wb-color-accent);
+  display: block;
+  margin-bottom: 16px;
+}
+.workbook-presentation .wb-slide--process .step b {
+  display: block;
+  font-family: var(--wb-font-display);
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.workbook-presentation .wb-slide--process .step span.body {
+  font-size: 22px;
+  color: var(--wb-color-muted);
+  line-height: 1.4;
+}
+
+/* Chart slide — editorial caption rules */
+.workbook-presentation .wb-slide--chart h2 {
+  font-size: 56px;
+  max-width: 24ch;
+  margin-bottom: 48px;
+}
+.workbook-presentation .wb-slide--chart figcaption {
+  color: var(--wb-color-muted);
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  margin-top: 24px;
+  border-top: 1px solid var(--wb-color-muted);
+  padding-top: 12px;
+  max-width: 60ch;
+}
+
+/* Q&A — full editorial close */
+.workbook-presentation .wb-slide--qa .wb-slide-inner {
+  align-items: flex-start;
+  text-align: left;
+}
+.workbook-presentation .wb-slide--qa h1 {
+  font-size: 200px;
+  font-weight: 800;
+  margin: 0;
+}
+.workbook-presentation .wb-slide--qa p {
+  font-size: 28px;
+  color: var(--wb-color-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 32px;
+}
+
+/* Small utilities used in slide markup */
+.eyebrow {
+  display: block;
+  color: var(--wb-color-accent);
+  font-family: var(--wb-font-body);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.kicker {
+  display: block;
+  color: var(--wb-color-muted);
+  font-size: 24px;
+  letter-spacing: 0.04em;
+  margin-top: 32px;
+  max-width: 30ch;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 56px;
+  flex-wrap: wrap;
+  margin-top: 56px;
+}
+.logo-row img {
+  height: 56px;
+  width: auto;
+  max-width: 200px;
+  opacity: 0.78;
+  filter: grayscale(1);
+}

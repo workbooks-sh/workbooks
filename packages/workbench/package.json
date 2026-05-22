@@ -1,0 +1,48 @@
+{
+  "name": "@work.books/workbench",
+  "version": "0.1.0",
+  "description": "Workbench — agent evaluation, observability, and iterate-agent loop. Drives `workbook chat / git / session` to run eval specs, aggregate session traces, and propose improvements against failing agents.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zaius-labs/workbooks.git",
+    "directory": "packages/workbench"
+  },
+  "homepage": "https://github.com/zaius-labs/workbooks",
+  "keywords": [
+    "workbook",
+    "eval",
+    "agent",
+    "observability",
+    "otel"
+  ],
+  "bin": {
+    "workbench": "./bin/workbench.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./eval": "./src/commands/eval.mjs",
+    "./observe": "./src/commands/observe.mjs",
+    "./improve": "./src/commands/improve.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "evals",
+    "EVAL_PRINCIPLES.md",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
+  },
+  "peerDependencies": {
+    "@work.books/cli": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

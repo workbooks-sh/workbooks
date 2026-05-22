@@ -1,0 +1,165 @@
+{
+  "_meta": {
+    "description": "Curated SVG logos for verticals the open sources (LobeHub / SVGL / Iconify / Devicon / Simple Icons) miss. Trademark posture: nominative fair use — used to identify the brand referenced in a workbook, not modified, not used as endorsement. Each entry must cite source URL + license. See ../data/logos-pack/README.md for the contribution process.",
+    "version": 1,
+    "updated": "2026-05-16"
+  },
+  "fda": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#003e7e\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">FDA</text></svg>",
+    "source": "hand-set wordmark (US Food and Drug Administration)",
+    "license": "US government work — public domain (17 USC § 105)",
+    "notes": "Simple wordmark. Replace with official seal when needed.",
+    "updated": "2026-05-16"
+  },
+  "ema": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#003399\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"38\" font-weight=\"700\" fill=\"#ffcc00\" text-anchor=\"middle\">EMA</text></svg>",
+    "source": "hand-set wordmark (European Medicines Agency)",
+    "license": "EU institutional — public domain for non-commercial use; contact agency for commercial",
+    "notes": "Simple wordmark in EU flag colors.",
+    "updated": "2026-05-16"
+  },
+  "epa": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#0f4a2a\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">EPA</text></svg>",
+    "source": "hand-set wordmark (US Environmental Protection Agency)",
+    "license": "US government work — public domain (17 USC § 105)",
+    "notes": "Simple wordmark.",
+    "updated": "2026-05-16"
+  },
+  "sec": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#1a3a6c\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">SEC</text></svg>",
+    "source": "hand-set wordmark (US Securities and Exchange Commission)",
+    "license": "US government work — public domain (17 USC § 105)",
+    "updated": "2026-05-16"
+  },
+  "ftc": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#143966\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">FTC</text></svg>",
+    "source": "hand-set wordmark (US Federal Trade Commission)",
+    "license": "US government work — public domain (17 USC § 105)",
+    "updated": "2026-05-16"
+  },
+  "cdc": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#1d4f8b\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">CDC</text></svg>",
+    "source": "hand-set wordmark (US Centers for Disease Control)",
+    "license": "US government work — public domain (17 USC § 105)",
+    "updated": "2026-05-16"
+  },
+  "nih": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#205493\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">NIH</text></svg>",
+    "source": "hand-set wordmark (US National Institutes of Health)",
+    "license": "US government work — public domain (17 USC § 105)",
+    "updated": "2026-05-16"
+  },
+  "who": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#0093d5\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">WHO</text></svg>",
+    "source": "hand-set wordmark (World Health Organization)",
+    "license": "UN institutional — public information; not for endorsement",
+    "updated": "2026-05-16"
+  },
+  "nasa": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#0b3d91\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"40\" font-weight=\"700\" fill=\"#fc3d21\" text-anchor=\"middle\">NASA</text></svg>",
+    "source": "hand-set wordmark (NASA — original meatball is at https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo.svg)",
+    "license": "US government work — public domain (17 USC § 105). Note: NASA logos have specific usage rules; check brand.nasa.gov",
+    "notes": "Replace with official meatball SVG when needed.",
+    "updated": "2026-05-16"
+  },
+  "fed": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#000000\"/><text x=\"100\" y=\"52\" font-family=\"Georgia,serif\" font-size=\"30\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">FED</text></svg>",
+    "source": "hand-set wordmark (US Federal Reserve System)",
+    "license": "US government work — public domain (17 USC § 105)",
+    "updated": "2026-05-16"
+  },
+  "swift": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#003366\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"38\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">SWIFT</text></svg>",
+    "source": "hand-set wordmark (Society for Worldwide Interbank Financial Telecommunication)",
+    "license": "trademark — nominative fair use only; check SWIFT brand guidelines for derivative use",
+    "notes": "Placeholder wordmark. Replace with official SVG from SWIFT brand portal if available.",
+    "updated": "2026-05-16"
+  },
+  "imf": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#5b8fb9\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">IMF</text></svg>",
+    "source": "hand-set wordmark (International Monetary Fund)",
+    "license": "UN/IMF institutional — public information; not for endorsement",
+    "updated": "2026-05-16"
+  },
+  "plaid": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#111111\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"40\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">Plaid</text></svg>",
+    "source": "hand-set wordmark (Plaid Inc.)",
+    "license": "trademark — nominative fair use only; check plaid.com/legal/brand for derivative use",
+    "notes": "Fintech-infra staple. Flagged as a gap in the payment-rails eval (2026-05-16). Replace with official SVG from Plaid's brand page when needed.",
+    "updated": "2026-05-16"
+  },
+  "ramp": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#f7f1e9\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"40\" font-weight=\"700\" fill=\"#000\" text-anchor=\"middle\">Ramp</text></svg>",
+    "source": "hand-set wordmark (Ramp Business Corporation)",
+    "license": "trademark — nominative fair use only",
+    "updated": "2026-05-16"
+  },
+  "brex": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#f5f3ee\"/><text x=\"100\" y=\"52\" font-family=\"Georgia,serif\" font-size=\"40\" font-weight=\"700\" fill=\"#111\" text-anchor=\"middle\">Brex</text></svg>",
+    "source": "hand-set wordmark (Brex Inc.)",
+    "license": "trademark — nominative fair use only",
+    "updated": "2026-05-16"
+  },
+  "mx": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#0f2c52\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">MX</text></svg>",
+    "source": "hand-set wordmark (MX Technologies — financial data API)",
+    "license": "trademark — nominative fair use only",
+    "updated": "2026-05-16"
+  },
+  "finicity": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#003a70\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"32\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">Finicity</text></svg>",
+    "source": "hand-set wordmark (Finicity — Mastercard subsidiary)",
+    "license": "trademark — nominative fair use only",
+    "updated": "2026-05-16"
+  },
+  "fednow": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#003c71\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"34\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">FedNow</text></svg>",
+    "source": "hand-set wordmark (Federal Reserve FedNow Service)",
+    "license": "US government work — public domain (17 USC § 105)",
+    "notes": "Replace with official seal from frbservices.org/financial-services/fednow when needed.",
+    "updated": "2026-05-16"
+  },
+  "rtp": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#1a4f88\"/><text x=\"100\" y=\"52\" font-family=\"Arial,sans-serif\" font-size=\"42\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">RTP</text></svg>",
+    "source": "hand-set wordmark (The Clearing House — Real-Time Payments)",
+    "license": "trademark — nominative fair use only; check theclearinghouse.org for usage",
+    "updated": "2026-05-16"
+  },
+  "sca": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#8b4513\"/><text x=\"100\" y=\"52\" font-family=\"Georgia,serif\" font-size=\"38\" font-weight=\"700\" fill=\"#f5efe6\" text-anchor=\"middle\">SCA</text></svg>",
+    "source": "hand-set wordmark (Specialty Coffee Association)",
+    "license": "trademark — nominative fair use only",
+    "notes": "Specialty Coffee Association — defines the 80+ point cupping scoring threshold. Flagged in the specialty-coffee eval.",
+    "updated": "2026-05-16"
+  },
+  "blue-bottle": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#005b9f\"/><text x=\"100\" y=\"52\" font-family=\"Georgia,serif\" font-size=\"30\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">Blue Bottle</text></svg>",
+    "source": "hand-set wordmark (Blue Bottle Coffee)",
+    "license": "trademark — nominative fair use only",
+    "updated": "2026-05-16"
+  },
+  "stumptown": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#111\"/><text x=\"100\" y=\"52\" font-family=\"Georgia,serif\" font-size=\"30\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">Stumptown</text></svg>",
+    "source": "hand-set wordmark (Stumptown Coffee Roasters)",
+    "license": "trademark — nominative fair use only",
+    "updated": "2026-05-16"
+  },
+  "counter-culture": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#1a1a1a\"/><text x=\"100\" y=\"52\" font-family=\"Georgia,serif\" font-size=\"24\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">Counter Culture</text></svg>",
+    "source": "hand-set wordmark (Counter Culture Coffee)",
+    "license": "trademark — nominative fair use only",
+    "updated": "2026-05-16"
+  },
+  "onyx": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#0a0a0a\"/><text x=\"100\" y=\"52\" font-family=\"Georgia,serif\" font-size=\"40\" font-weight=\"700\" fill=\"#d4a373\" text-anchor=\"middle\">Onyx</text></svg>",
+    "source": "hand-set wordmark (Onyx Coffee Lab)",
+    "license": "trademark — nominative fair use only",
+    "updated": "2026-05-16"
+  },
+  "illy": {
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\"><rect width=\"200\" height=\"80\" fill=\"#c8102e\"/><text x=\"100\" y=\"52\" font-family=\"Helvetica,Arial,sans-serif\" font-size=\"48\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\" letter-spacing=\"-2\">illy</text></svg>",
+    "source": "hand-set wordmark (illycaffè S.p.A.)",
+    "license": "trademark — nominative fair use only; check illy brand guidelines",
+    "updated": "2026-05-16"
+  }
+}

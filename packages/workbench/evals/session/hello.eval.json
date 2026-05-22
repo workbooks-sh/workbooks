@@ -1,0 +1,12 @@
+{
+  "name": "session/hello",
+  "agent": "workhorse",
+  "turns": [
+    {
+      "prompt": "Reply with exactly the word PINGPONG and nothing else.",
+      "checks": [
+        { "kind": "session.text_contains", "substring": "PINGPONG" }
+      ]
+    }
+  ]
+}

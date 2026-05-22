@@ -1,0 +1,22 @@
+<cw-xml version="0.1" fps="30" resolution="1920x1080" aspect="16:9">
+  <sequence id="intro" duration="6s">
+    <scene id="title" duration="3s">
+      <shot id="title-text" duration="3s">
+        <layer id="hero" kind="text" anchor="center">
+          <text>%%NAME%%</text>
+        </layer>
+        <transition-in kind="fade" duration="10f" />
+        <transition-out kind="fade" duration="8f" />
+      </shot>
+    </scene>
+    <scene id="subtitle" duration="3s">
+      <shot id="subtitle-text" duration="3s">
+        <layer id="line" kind="text" anchor="center">
+          <text>A workbook that plays video.</text>
+        </layer>
+        <transition-in kind="fade" duration="8f" />
+        <transition-out kind="fade" duration="10f" />
+      </shot>
+    </scene>
+  </sequence>
+</cw-xml>

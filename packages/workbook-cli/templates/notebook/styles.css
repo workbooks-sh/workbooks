@@ -1,0 +1,20 @@
+:root {
+  --nb-fg: #1a1a1a;
+  --nb-bg: #ffffff;
+  --nb-rule: rgba(0, 0, 0, 0.08);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: var(--nb-fg);
+  background: var(--nb-bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --nb-fg: #e8e8e8; --nb-bg: #0a0a0a; --nb-rule: rgba(255,255,255,0.08); }
+}
+html, body { margin: 0; }
+.nb {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 6rem;
+}
+.nb header { padding-bottom: 1.5rem; border-bottom: 1px solid var(--nb-rule); margin-bottom: 2rem; }
+.nb h1 { margin: 0; font-size: 1.75rem; }
+.nb h1 + p { margin: 0.5rem 0 0; opacity: 0.6; font-size: 0.875rem; }

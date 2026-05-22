@@ -1,0 +1,25 @@
+/* Palette override only — every other visual decision comes from the
+   default theme. Comment any line out to fall back to the theme's
+   defaults. The theme ships sensible values; this just gives the deck
+   its identity. */
+:root {
+  --wb-color-dominant: #1F2937;
+  --wb-color-accent:   #F59E0B;
+  --wb-color-bg:       #FAFAFA;
+  --wb-color-text:     #1F2937;
+}
+
+/* Tiny utility — every other slide layout comes from the default theme. */
+.logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+.logo-row img {
+  height: 48px;
+  width: auto;
+  max-width: 160px;
+}

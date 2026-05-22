@@ -1,0 +1,15 @@
+{
+  "name": "@work.books/example-payment-rails",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node ../../packages/workbook-cli/bin/workbook.mjs build",
+    "dev": "node ../../packages/workbook-cli/bin/workbook.mjs dev"
+  },
+  "devDependencies": {
+    "@work.books/cli": "*",
+    "@work.books/runtime": "*",
+    "svelte": "^5.0.0"
+  }
+}

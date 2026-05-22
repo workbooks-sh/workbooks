@@ -1,0 +1,25 @@
+<cw-xml version="0.1" fps="30" resolution="1920x1080" aspect="16:9">
+  <analysis>
+    <transcript id="t1" src="./transcript.words.json" />
+  </analysis>
+  <sequence id="main" duration="8s">
+    <scene id="problem" duration="4s">
+      <shot id="claim" duration="4s">
+        <layer id="line" kind="text" anchor="center">
+          <text>Video. In one HTML file.</text>
+        </layer>
+        <caption id="caption-main" source="t1" mode="word-highlight" anchor="lower-third" />
+        <transition-in kind="fade" duration="10f" />
+        <transition-out kind="dissolve" duration="15f" />
+      </shot>
+    </scene>
+    <scene id="payoff" duration="4s">
+      <shot id="brand" duration="4s">
+        <layer id="payoff-line" kind="text" anchor="lower-third">
+          <text>Built with @work.books/cli</text>
+        </layer>
+        <transition-in kind="fade" duration="8f" />
+      </shot>
+    </scene>
+  </sequence>
+</cw-xml>

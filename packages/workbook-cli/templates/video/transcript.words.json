@@ -1,0 +1,10 @@
+[
+  { "text": "Video.",        "start_ms": 200,  "end_ms": 700  },
+  { "text": "In",            "start_ms": 800,  "end_ms": 950  },
+  { "text": "one",           "start_ms": 970,  "end_ms": 1200 },
+  { "text": "HTML",          "start_ms": 1250, "end_ms": 1700 },
+  { "text": "file.",         "start_ms": 1750, "end_ms": 2200 },
+  { "text": "Built",         "start_ms": 2400, "end_ms": 2700 },
+  { "text": "with",          "start_ms": 2750, "end_ms": 2950 },
+  { "text": "@work.books.",  "start_ms": 3000, "end_ms": 3800 }
+]

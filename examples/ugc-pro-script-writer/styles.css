@@ -1,0 +1,67 @@
+:root {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 14px;
+  color: #111;
+  background: #fafaf7;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
+
+main {
+  max-width: 640px;
+  padding: 32px;
+  width: 100%;
+}
+
+h1 {
+  font-family: "Iowan Old Style", Charter, Georgia, serif;
+  font-size: 36px;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+p { color: #555; margin: 0 0 16px; }
+p.tagline { color: #c2410c; margin-bottom: 24px; }
+
+a { color: #c2410c; }
+
+code {
+  background: #f0eee8;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e2db;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.caption {
+  margin: 0;
+  color: #888;
+  font-size: 12px;
+}
+
+.ugc-stage {
+  font-family: "Iowan Old Style", Charter, Georgia, serif;
+  color: #111;
+  line-height: 1.5;
+}
+.ugc-stage h1 { font-size: 28px; margin: 0 0 12px; }
+.ugc-stage h2 {
+  font-size: 14px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c2410c;
+  margin: 18px 0 8px;
+}
+.ugc-stage ul { padding-left: 20px; margin: 0 0 12px; }
+.ugc-stage li { margin: 4px 0; }
+.ugc-stage p { margin: 0 0 12px; color: #222; }
+.ugc-stage em { color: #666; }
+.ugc-stage .placeholder { color: #999; font-style: italic; }

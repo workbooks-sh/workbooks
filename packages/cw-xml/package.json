@@ -1,0 +1,21 @@
+{
+  "name": "@work.books/cw-xml",
+  "version": "0.0.1",
+  "private": true,
+  "description": "DEPRECATED — use @work.books/gamut-runtime. TypeScript port of the legacy cw-xml video composition spec. Frozen; no new features or bug fixes. See DEPRECATED.md.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,84 @@
+:root {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 14px;
+  color: #111;
+  background: #fafaf7;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
+
+main {
+  max-width: 640px;
+  padding: 32px;
+  width: 100%;
+}
+
+h1 {
+  font-family: "Iowan Old Style", Charter, Georgia, serif;
+  font-size: 36px;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+p {
+  color: #555;
+  margin: 0 0 24px;
+}
+
+code {
+  background: #f0eee8;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e2db;
+  border-radius: 8px;
+  padding: 8px;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th, td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0eee8;
+}
+
+th {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #777;
+  background: #fafaf7;
+  border-bottom: 1px solid #e5e2db;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: #fafaf7;
+}
+
+td:last-child {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: #444;
+}
+
+.caption {
+  margin: 12px 4px 0;
+  color: #888;
+  font-size: 12px;
+}
