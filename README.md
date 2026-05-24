@@ -143,7 +143,7 @@ A workbook is not "an app" or "a notebook" — it's a *shape*:
 - **SQL workbenches** — Polars or DuckDB inlined, queries embedded, the recipient runs them locally.
 - **Reactive notebooks** — cells, DAG, hot recompute. Cell sources travel with the file via the source bundle.
 - **Self-contained micro-apps** — chess, drawing tools, image editors, calculators. State held in URL fragments or localStorage.
-- **LLM-agent-authored artifacts** — colorwave, sift. Agents emit deliberately-structured workbooks (sections + outline + audit) that ship as portable HTML.
+- **LLM-agent-authored artifacts** — agents emit deliberately-structured workbooks (sections + outline + audit) that ship as portable HTML.
 - **Encrypted workbooks** — passphrase-locked at rest, opened with the runtime; secrets never round-trip through any server.
 
 The constraint isn't the format. The constraint is figuring out what
@@ -158,48 +158,20 @@ The constraint isn't the format. The constraint is figuring out what
 | `packages/workbook-cli` | `workbook init`, `dev`, `build`, `unbundle`. | npm: `@work.books/cli` |
 | `packages/runtime` | Browser-side runtime + SDK (`wb.text`, `wb.collection`, `wb.app`, `wb.secret`, `wb.fetch`). | npm: `@work.books/runtime` |
 | `packages/runtime-wasm` | The Rust + WASM heavy lifters (Polars, Plotters, Rhai, Candle). Three pre-built feature slices. | npm: `@work.books/runtime-wasm` |
-| `packages/workbook-substrate` | File-as-database parser + hydrator (used by save-in-place workbooks running under the legacy daemon). | npm: `@work.books/substrate` |
-| `packages/workbooksd` | **Legacy.** Local Rust daemon for save-in-place editing. See "Legacy daemon" below. | ~1 MB single binary |
 | `examples/` | Reference workbooks — each ships a built `.html` you can open. | clone-and-open |
 | `docs/` | Spec, operations, security model. | start [here](docs/SPEC.md) |
 
 ---
 
-## Legacy daemon
-
-Earlier versions of workbooks centered on a small Rust daemon
-(`workbooksd`) that brokered save-in-place — double-click a `.html`,
-edit it, hit ⌘S, the bytes on disk update. The daemon is real, it
-works, it's signed + notarized for macOS. It's still in this repo.
-
-We've moved away from it as the **primary** model because:
-
-- The macOS install + signing + Gatekeeper + LaunchServices routing
-  story is high-cost for low-value-to-most-users.
-- The dominant use case is shipping a finished artifact to someone,
-  not co-editing one over time.
-- Persistence-heavy workflows are better served by the hosted
-  [workbooks.sh](https://workbooks.sh) viewer where users sign in
-  with their own identity.
-
-The daemon stays in-tree as a local-power-user tool. If you want
-save-in-place locally, you can still install it. We're not building
-new features for it; we're not deleting it either. Treat it as a niche.
-
----
-
 ## Status
 
-**CLI** — published on npm (`@work.books/cli`). Stable. v0.5.0 added the
-source-bundle stage.
+**CLI** — published on npm (`@work.books/cli`). Stable.
 
 **Runtime + runtime-wasm slices** — published on npm. Stable.
 
-**Daemon** — legacy. Continues to ship signed builds for macOS / Linux
-/ (pending) Windows. No new features planned.
-
-**Hosted viewer (workbooks.sh)** — separate hosted surface; not in this
-repo. The lander redirects you there.
+**Hosted viewer ([workbooks.sh](https://workbooks.sh))** — separate
+hosted surface; not in this repo. Optional, for persistence-heavy
+workflows.
 
 The architecture is settled. The roadmap from here is about more
 shapes, more examples, sharper docs.
@@ -226,13 +198,12 @@ clone it, hope it builds." Open the .html, run `workbook unbundle`,
 iterate.
 
 **What about state and login?**
-Use [workbooks.sh](https://workbooks.sh) for hosted state. The local
-daemon is legacy; we're not the right tool if you need a daemon-driven
-save loop on every recipient's machine.
+Use [workbooks.sh](https://workbooks.sh) for hosted state — sign-in,
+per-user persistence, sharing. The `.html` itself stays the
+deliverable.
 
 **Is the runtime open source?**
-Yes. Apache-2.0. The whole repo: daemon, cli, runtime, runtime-wasm,
-substrate. Anyone can build from source.
+Yes. Apache-2.0. The whole repo: cli, runtime, runtime-wasm.
 
 ---
 
