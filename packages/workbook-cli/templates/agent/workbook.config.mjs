@@ -30,8 +30,9 @@ export default {
     model: "anthropic/claude-sonnet-4.6",
     systemPrompt,
     // pi-coding-agent tool allowlist. Strings of the form
-    // "composio:<toolkit>" bind every action of that toolkit at session
-    // start (requires an active Studio → Integrations connection).
+    // "oauth:<toolkit>" bind every action of that broker-managed
+    // OAuth toolkit at session start (requires an active Studio →
+    // Integrations connection).
     tools: [],
     // Per-name JS files, each exporting (target, props, emit) => unmount.
     // The stage is what the agent writes its draft into.

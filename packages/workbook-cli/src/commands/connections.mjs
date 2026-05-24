@@ -9,7 +9,7 @@
 // Use cases:
 //   - "do I have GitHub set up here?"  → `workbook connections list --toolkit github`
 //   - script lookup for which slugs to declare in workbook config
-//   - sanity-check before publishing an agent that needs `composio:gmail`
+//   - sanity-check before publishing an agent that needs `oauth:gmail`
 //
 // Sharing edits (private / groups / org) live in Studio →
 // /integrations. The CLI is read-only for now.

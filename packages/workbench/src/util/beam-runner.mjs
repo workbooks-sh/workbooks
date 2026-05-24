@@ -1,15 +1,15 @@
 // Resolve the BEAM agent runner spawn args. Used by the eval runner
 // when spec.runtime === "beam" — instead of spawning `workbook chat`
 // (which routes through Convex), we spawn the Elixir-side
-// `mix wb.agent.chat` task in apps/workbooks-runtime/ directly.
+// `mix wb.agent.chat` task in apps/studio/workhorse/ directly.
 //
 // Protocol parity: the BEAM task emits the same NDJSON shape the
 // existing workbook-chat path emits (chat.open, message_delta,
 // tool_start, tool_result, chat.close). See
-// apps/workbooks-runtime/lib/workbooks_runtime/agent/event_sink/workbench.ex.
+// apps/studio/workhorse/lib/workhorse/agent/event_sink/workbench.ex.
 //
 // Workbench's WORKBOOKS_RUNTIME_DIR env var lets ops override the path
-// to the Elixir runtime app; default is `apps/workbooks-runtime`
+// to the Elixir runtime app; default is `apps/studio/workhorse`
 // relative to the workbench process CWD.
 
 export function resolveBeamRunner(workbookArgs) {
@@ -18,7 +18,7 @@ export function resolveBeamRunner(workbookArgs) {
     throw new Error(`beam runtime only supports 'chat' commands; got: ${first}`);
   }
 
-  const runtimeDir = process.env.WORKBOOKS_RUNTIME_DIR ?? "apps/workbooks-runtime";
+  const runtimeDir = process.env.WORKBOOKS_RUNTIME_DIR ?? "apps/studio/workhorse";
 
   // Mix has no CWD-override flag — we set the spawn CWD instead.
   // Caller passes the third element as the `cwd` option to spawn().

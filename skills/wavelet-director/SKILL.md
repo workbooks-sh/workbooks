@@ -79,6 +79,28 @@ The compose pre-pass substitutes the element with `<video src="…" autoplay mut
 
 Hand-authored overlays use the same shape: write a `.clip.html` with `kind: overlay` and a body containing your HTML/CSS. Same registry, same compose-time resolution.
 
+### Anti-patterns the compose pre-pass DOES NOT process
+
+The pre-pass recognizes EXACTLY these two surfaces for scene composition:
+`<wavelet-clip src="...">` (the canonical form above) and raw `<video src="...">` /
+`<img src="...">` / `<audio src="...">` elements inside the scene HTML.
+Everything else is invisible. **Do not invent attributes** — they will be
+silently dropped, your Veo spend will be orphaned, and the rendered MP4
+will contain text-only overlays with no video underneath.
+
+Known hallucinations that have burned real spend (wb-a2z2, eval 008):
+
+| Hallucinated | What you actually want |
+|---|---|
+| `<section data-video-bg="shots/X.mp4">` (on commercial.html) | Put `<video src="../shots/X.mp4" autoplay muted loop playsinline style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;"></video>` INSIDE the scene HTML itself, with text overlays absolutely-positioned above. |
+| `<section data-scene-href="scenes/01-pour.html">` (compose-style routing on commercial.html) | Use the standard scene-list pattern that `wavelet render commercial.html` already recognizes — don't add custom `data-*` attributes hoping the renderer will follow them. |
+| `data-shot=`, `data-bg=`, `data-clip=` etc. on any element | Either use `<wavelet-clip src="...">` (preferred — carries lineage) or a raw `<video src="...">` inside the scene HTML. |
+
+The wavelet renderer has no plug-in surface for custom `data-*` attributes
+on composition or scene elements. If you find yourself reaching for one,
+you're inventing a feature that doesn't exist. Stop, re-read this section,
+and use one of the two recognized surfaces above.
+
 ### Edit chains
 
 When you refine an existing clip, the producer chains via `--parent <clip-id> --edit-kind <kind>`:
@@ -156,8 +178,8 @@ brief.md (9-line) → wavelet brief check
             │   wavelet shot txt2vid → shots/shot-N.mp4 (paid: ~$0.10 each)
             │
             ├─ write scene HTML overlays (the freeform palette section)
-            ├─ assemble index.html manifest (or comp.json for advanced cases)
-            └─ wavelet render index.html -o commercial.mp4
+            ├─ assemble commercial.html manifest
+            └─ wavelet render commercial.html -o commercial.mp4
 ```
 
 Canonical pipeline spec lives at `wavelet pipelines show commercial`. The
@@ -177,6 +199,692 @@ and re-review. On `abort` (the same fail has recurred ≥ 3 times),
 stop and report back rather than burning more budget. The reviewer
 only reads — it never spends — so calling it between every stage is
 free insurance against compounding errors.
+
+## Brand resolution — run FIRST when a brief names a brand without a domain
+
+Before ANY brandwork call that requires a known domain (`brief`, `brand fetch`,
+`logo`, `fonts`), the agent MUST confirm it has the canonical domain for the
+brand in the brief. If the brief gives a name or product description without
+a clear domain, run:
+
+```bash
+brandwork resolve "<query>"
+```
+
+Take `candidates[recommended].domain` as the domain and proceed. If the
+top candidate has confidence below 0.50, note the uncertainty in `strategy.md`
+and consider falling back to a Web search to confirm.
+
+Examples:
+- Brief says `"livconscious wellness brand"` → `brandwork resolve "livconscious"` → `weliveconscious.com`
+- Brief says `"Whirlpool stand mixer"` → `brandwork resolve "Whirlpool stand mixer"` → `kitchenaid.com`
+- Brief says `"Made in USA 990v6 sneaker"` → `brandwork resolve "Made in USA 990v6 sneaker"` → `newbalance.com`
+
+Record the `resolve` result verbatim in `strategy.md` under a `Domain resolution`
+heading before calling any downstream brandwork command.
+
+If the brief ALREADY contains a clean domain (e.g. `allbirds.com`), skip `resolve`
+and proceed directly to the Phase 1 gate calls below.
+
+## Phase 1 gate — brand-research is non-negotiable
+
+Phase 1 (creative strategy) cannot end and Phase 2 (storyboard /
+generation) cannot start until the agent has invoked AT LEAST these
+four `brandwork` calls AND retrieved a real logo asset AND
+researched a real specific product, recording all of it verbatim in
+`strategy.md`:
+
+1. `brandwork brand.brief <domain>` — the brand's identity surface
+   (logo URL, palette, typography, tagline). Resolve `<domain>` from
+   the user's brief. If the brief names a parent brand whose product
+   actually ships under a sub-brand (e.g. "Whirlpool stand mixer" —
+   the real product brand is KitchenAid, which Whirlpool acquired in
+   1986), the agent FIRST resolves the actual product brand via
+   `brandwork resolve`, THEN runs `brand.brief` against the ACTUAL
+   product brand's domain. Never run `brand.brief` on the parent
+   brand and call it done.
+
+2. `brandwork brand.product domain=<x> query=<sku>` — product image
+   URLs and SKU descriptors. If the user's brief said "make me a
+   New Balance ad for a new product" without naming a specific SKU,
+   the agent's job in Phase 1 is to **find a real specific product**:
+   query the brand's product catalog via brandwork, OR run
+   `brandwork web fetch <brand-domain>/new-arrivals` (or the brand's
+   actual landing page) and identify a real SKU, real colorway, real
+   price, real positioning copy. Record SKU + URL + every line of
+   copy the brand publishes about that product in `strategy.md`. The
+   spot uses those exact words and the actual product image — no
+   invented colorways, no invented capsule names, no invented copy.
+
+3. `brandwork brand.ads domain=<x> source=meta limit=10` — what the
+   brand's actual published ads look like. Pull at least 2 real ad
+   creatives (text bodies + sample frame URLs from `snapshot.body
+   .text` and `snapshot.images` / `snapshot.videos`). The screenplay
+   MUST reference how those ads structure their hook, social proof,
+   CTA, and product reveal — the agent's training-data prior on
+   "what a brand ad looks like" is downstream of this real data.
+
+4. **Logo retrieval is hard-required, no fallback.** `brand.brief`
+   returns a `brand.logo_url`. The agent MUST `curl` that URL and
+   confirm the asset downloads (HTTP 200, content-type image/svg+xml
+   or image/png, body > 1KB). If the logo_url is missing or 404s,
+   the agent MUST escalate (not fall back to rendering the brand
+   name in a sans-serif placeholder): use `brandwork web fetch
+   <brand-domain>` to scrape the site's `<link rel="icon">` /
+   `<meta property="og:logo">` / Open Graph image, OR query
+   `brandwork brand fetch <domain> --force-refresh` to re-pull from
+   logo.dev / Brandfetch. Every brand we've used has a real logo
+   available through one of these paths. If after all four paths
+   nothing resolves, **STOP and surface the error to the user** —
+   do NOT proceed with content generation. Rendering the brand
+   name as filler typography in place of the real wordmark is a
+   ship-blocking failure.
+
+If the agent declares Phase 1 done without these four calls landed,
+the logo asset downloaded, and a real product researched, the spot
+WILL be generically wrong regardless of how good the Veo prompts
+are. The rubric's `brand_resolution` dimension grades this;
+`wavelet lint` cannot catch it because the failure is upstream of
+layout.
+
+Anti-patterns observed in eval traces (don't repeat):
+- 005 v5 (Whirlpool): zero brandwork calls. Worked from training-
+  data priors, wrote "Whirlpool iconic stand mixer in pearl white"
+  when the real product brand is KitchenAid.
+- 008 v2 (NB 9060 Mint Julep): brandwork calls landed, but the
+  agent invented "Acrylic Series" / "A New Balance Capsule" /
+  "Pigment 001" / "MACRO 005" / "100MM · F/2.8" copy that has no
+  basis in NB's real product line. Never showed the NB wordmark
+  even though `brand.logo_url` was retrievable. Used filler black
+  sans-serif type for "NEW BALANCE" instead of pulling the real
+  wordmark asset.
+- 010 v3 (Bubble): brandwork returned real product data (turquoise
+  jar with orange pump cap), agent wrote "pastel pink-and-cream
+  squeeze tube" anyway. Verbatim copy propagation discipline
+  failed at the prompt-authoring step.
+
+## Hard rules — apply to EVERY spot regardless of register
+
+These are NOT register-specific stylistic guidance — they apply to
+every commercial Wavelet ships. They exist because each one has been
+violated in production evals (008 v2, 010 v3) and the failure mode
+is invariably "the ad looks slick but is brand-wrong."
+
+### 1. No invented product taxonomies
+
+Never introduce a product line name that isn't in the brief or
+brandwork output. "Acrylic Series", "Pigment 001", "Capsule",
+"Edition N" etc. are filler-fashion vocabulary that the LLM reaches
+for when it feels a premium register. They are wrong unless the
+brand actually publishes under that line — and you'll know because
+`brandwork brand.product` or `brand.ads.meta.[].snapshot` will name
+them. If neither does, the line doesn't exist; do not invent it.
+
+### 2. Brand wordmark required in intro + CTA
+
+Every spot opens AND closes with the brand wordmark on screen. Pull
+from `brandwork brand.logo_url` and inline as an `<img>` or
+`<wavelet-clip>` over the underlay. If `logo_url` is absent for the
+brand, render the brand name in the brand's canonical face from
+`brandwork design.typography.headings.h1.fontFamily` — NEVER as
+filler black sans-serif. If even that's missing, stop and run
+`brandwork brand` again until you have either the logo or the
+canonical type. A spot without the wordmark is not the brand's spot.
+
+### 3. Product visible by 3s
+
+The first sustained shot containing the actual product MUST be ≤ 3s
+into the spot. A 1-2s opener of abstract motion or type cards is
+fine, but the product cannot be absent for the opening 5+ seconds.
+Real social ads at this length (12s-30s) establish product + brand
+by 2-3s; anything longer reads as untargeted brand-art rather than a
+shoppable ad. 008 v2 left the NB 9060 invisible for the first ~12s
+of a 25s spot and the resulting render reads as a paint commercial
+that happens to have shoes in it.
+
+### 4. Real metadata only — no decorative fake garnish
+
+Lens specs (`100MM · F/2.8`), hex codes (`#B8DCC8`), frame numbers
+(`MACRO 005`), fake series taxonomies, and similar editorial-cover
+typography garnish are BANNED on type cards unless:
+
+- The brand's actual published ads (visible in `brandwork brand.ads`)
+  use them, AND
+- The metadata is real (the actual lens used, the actual product
+  code, the actual colorway name from `brand.product`).
+
+CSS hex codes used for typography decoration ("#B8DCC8" on a card
+because the mint is hex `#B8DCC8`) are the canonical tell. They
+carry meaning to the prompt author, none to the viewer. Strip them.
+
+### 5. Premium-minimal is the default register, NOT editorial-spread
+
+The "cinematic / luxury / editorial" register bucket has historically
+covered two distinct schools:
+
+- **premium-minimal** (Apple, Nike, Common Projects): brand-first,
+  product-first, real type, no invented taxonomies, no fake metadata.
+  This is the **default** for any brief that names a product to sell.
+- **editorial-spread** (Apartamento, 032c, Hypebeast magazine
+  pages): off-white grounds, serif-sans mix, real metadata-as-craft
+  (real lens, real designer, real edition number). Use ONLY when the
+  brief explicitly asks for magazine-spread aesthetic AND the brand's
+  own ads live in that space.
+
+When in doubt → premium-minimal. The editorial register is a narrow
+opt-in. The 008 v2 failure was reaching for editorial vocabulary
+without the brief asking for it.
+
+### 6. Pre-flight: read ≥2 real ads before writing the screenplay
+
+Before drafting any shot prompt or type card copy, run:
+
+```
+brandwork ads search <brand>
+```
+
+Read the body + title of at least two actual creatives from
+`brand.ads.meta.[].snapshot.body.text` and `snapshot.title`. The
+screenplay's voice, type, and product framing should match what the
+brand actually publishes. Skipping this step is what produced the
+"confused mimicry" copy in 008 v2 — the agent's prior of what a
+"premium NB ad" should look like was wrong.
+
+## Shot-prompt-prefix — locking the visual register
+
+Every freshly-spun director writes one bespoke Veo prompt per shot,
+each with its own ad-hoc cinematography vocabulary. The result is
+three shots that read as three different cameras: shot 1 a moody dawn,
+shot 2 bright clinical daylight, shot 3 rustic warm tones. The `color-
+grade-coherence` lint catches the symptom (worst-pair deltaE in the
+high 30s) but the fix lives upstream, at the storyboard stage.
+
+In Phase 1 (creative strategy), lock a single **cinematography
+preamble** — a 15-40 word block declaring the shared visual language
+for THIS spot. Record it in `strategy.md` under a `Cinematography
+lock` heading. Examples of what a locked preamble looks like:
+
+> 35 mm anamorphic, shallow DoF, amber tungsten key from camera-right,
+> A24-style color grade with warm shadows + neutral highlights, soft
+> film grain, no LUT shift, locked aspect 9:16
+
+Use the next register when the brief leans social-feed, DTC, lifestyle,
+or authenticity-first rather than cinematic luxury — the camera is
+supposed to feel like a phone someone is actually holding, not a film
+rig:
+
+> handheld iPhone 16 Pro Max at chest height, quick punchy cuts on
+> action, energetic feed pace, raw camera-native HDR with no color
+> grade, slight rolling-shutter wobble, no anamorphic flare, no film
+> grain overlay, ambient daylight + practical room light
+
+> iPhone 16 Pro Max handheld at chest height, available daylight
+> overhead, Apple HDR color, slight rolling-shutter wobble, no color
+> grade beyond camera-native, 9:16 portrait
+
+### UGC talking-head register — the canonical selfie scaffold
+
+The above preambles describe a *camera*. For a creator-to-camera UGC
+ad (the "filmed on an iPhone in a bathroom" aesthetic), the prompt
+also needs an explicit *selfie framing* opener. Community-validated
+findings (Replicate Veo 3 guide, snubroot/Veo-3-Prompting-Guide,
+Atlabs, AdLibrary, shedoesai — 2025-2026): every UGC prompt MUST
+open with the literal phrase **"A selfie video of"** followed by
+identity, and MUST include the literal **"holds the camera at arm's
+length. Her arm is clearly visible in the frame."** beat. Without
+both, Veo collapses to a close-up portrait, not a selfie.
+
+The preamble for this register, pasted verbatim after the subject /
+action / wardrobe slots on every shot:
+
+> handheld iPhone 16 Pro Max selfie, arm clearly visible in lower
+> frame, eye contact with the lens, natural available daylight from
+> camera-left, Apple HDR camera-native color (no LUT, no grade),
+> slight rolling-shutter wobble, slightly grainy, looks very film-
+> like, ambient room sound, 9:16 portrait
+
+Concrete shot prompt for shot 1 of a 24 s skincare-haul talking-head
+spot — note the opener and the arm beat are *literal*, the trailing
+realism modifiers are *literal*, and the cinematography preamble is
+the constant across every cut:
+
+```
+A selfie video of DANA, a 23-year-old with light brown hair tied
+in a messy half-up, freckles, visible pores, asymmetric features,
+no makeup, cream cotton tank top with wrinkled fabric, standing at
+her bathroom vanity with morning daylight from a frosted window
+camera-left, holds the camera at arm's length, her arm is clearly
+visible in the frame, looks into the lens and says brightly in a
+natural American accent: "okay so I literally just tried this and
+my skin is, like, glowing", handheld iPhone 16 Pro Max selfie, arm
+clearly visible in lower frame, eye contact with the lens, natural
+available daylight from camera-left, Apple HDR camera-native color
+(no LUT, no grade), slight rolling-shutter wobble, slightly grainy,
+looks very film-like, ambient room sound, 9:16 portrait
+```
+
+Dialogue conventions for the register: filler words ("like",
+"literally", "um", "okay so"). Conversational sentence fragments.
+Mannerisms in the action slot ("covers her mouth", "rolls her eyes",
+"glances offscreen"). NO corporate copy, NO "today I want to tell
+you about", NO "introducing the all-new". One continuous take, no
+cuts mid-shot.
+
+### UGC negative-prompt set
+
+For UGC-register shots, override the standard negative prompt with
+the community-validated 5-8 term set (Magic Hour, videoai.me,
+AdLibrary — research findings cap effective negative length at
+~8 terms; longer lists measurably degrade output). Pass via
+`--negative-prompt`:
+
+```
+plastic skin, frozen lips, jittery eyes, unnatural blinking,
+floating teeth, head shake, studio lighting, ring light, beauty
+filter, perfect skin, heavy makeup, DSLR, professional photography,
+centered framing, stock photo
+```
+
+Trim to 5-8 most-relevant terms per shot. Keep `plastic skin`,
+`frozen lips`, `jittery eyes` in every UGC shot — those are the
+identity-stability anchors that prevent the AI-face tell.
+
+### Pick the concept — the four creative buckets
+
+Every spot lives in one of four creative concepts. These are
+**vibe directions, not prompt-deterministic categories** — you pick
+one based on the brief, the brand's actual published ads, and the
+goal of the spot. Two spots in the same concept can read very
+differently, but everything about how you author the screenplay,
+where you put text, and how you pace cuts is downstream of which
+concept you picked. **Pick exactly one and commit to it in
+`strategy.md` under a `Concept` heading. Don't mix.**
+
+#### 1. Organic
+
+The "I'm watching this on TikTok / YouTube Shorts / Reels" vibe.
+Creator-to-camera, talking-head, lo-fi handheld feel, real-life
+environment (bathroom, kitchen, walking through a store). UGC is
+the dominant sub-style here.
+
+Authoring rules:
+- Backend: Nano Banana 3 for character refs, Veo 3.1 ref-to-video
+  for shots. See "UGC talking-head register" scaffold above.
+- Text: HTML overlays only for brand wordmark + CTA — keep Veo
+  clips text-free since baked text reads as AI artifact in this
+  register.
+- Pacing: longer single takes (4-8s), eye contact with lens,
+  natural filler words in dialogue.
+- Length: 18-30s typical; UGC viewer expects a story arc.
+- Brand visibility: brand wordmark as small HTML pill in corner;
+  product visible in-frame from shot 2 onward.
+- Post: ffmpeg post-realism pass (Step 8.7) for the phone-camera
+  authenticity layer.
+
+When the brand's Meta ads are predominantly creator-shot talking-
+heads → this is your concept by default.
+
+#### 2. Direct Response
+
+True advertising. Hook + social proof + CTA in a strategized order.
+The viewer should know the brand, the product, the value
+proposition, and where to buy within the first 5s, with conversion
+mechanics doing real work the rest of the way.
+
+Authoring rules:
+- Structure (mandatory): hook in first 2s, social proof / demo
+  in middle, hard CTA in final 3s. The screenplay must explicitly
+  label these scenes.
+- Hook: pattern-interrupt motion + brand identifier on screen.
+- Social proof: real review snippet (pull from `brandwork brand
+  .ads` examples), real founder testimonial, real before/after.
+  Never invented quotes.
+- CTA: HTML scene with brand wordmark + headline + button +
+  URL. See "CTA mode — direct-response" section.
+- Brand visibility: wordmark visible by 2s, product visible by 3s.
+  No 5-second cold opens with abstract motion.
+- Backend: depends on the visual register the brand's existing
+  ads use — could be UGC (Nano Banana refs + Veo) or cinematic
+  (Veo only). Look at `brand.ads` for guidance.
+- Text inside Veo gen: only if the brand's real ads use baked
+  text (rare); default is HTML overlays for all on-screen copy.
+
+When the brief uses words like `conversion`, `DTC`, `sale`,
+`offer`, `discount`, `launch`, or names a specific funnel stage
+("retargeting," "TOFU") → this is your concept.
+
+#### 3. Animated
+
+Eye-popping visual aesthetics. The medium IS the message — fluid
+color, viscous paint, kinetic typography, transitional animations,
+forming-from-motion wordmarks. Not trying to look real; trying to
+look beautiful.
+
+Authoring rules:
+- Backend: Veo 3.1 (no ref-to-video needed — the subject is the
+  medium, not a person). For complex multi-shot motion, evaluate
+  Kling v3 Pro's multi-shot mode (tracked under `wb-qkgj`).
+- Pacing: **fast cuts, ≤ 2s per shot typical**, transitions
+  matched between shots (paint at end of shot 1 becomes paint at
+  start of shot 2 — the cut is invisible because the medium
+  carries through).
+- **Text goes INSIDE the Veo generation, not as HTML overlay.**
+  Prompt the brand wordmark to form from the medium ("the words
+  NEW BALANCE materialize from the swirling acrylic"). HTML
+  overlays in this register undercut the aesthetic.
+- Product visible: yes, but stylized — the product can be the
+  paint, made of the medium, dripping with the medium. Pure
+  abstract motion without product reveal by 8s is a fail.
+- Brand wordmark: must appear in real brand typography pulled
+  from `brandwork design.typography.headings.h1.fontFamily` —
+  not invented sans-serif. Render via Veo prompt or by
+  pre-rendering the wordmark as PNG and feeding it as a Veo
+  reference image (Ingredients-to-Video, one of the 3 ref slots).
+- Length: 15-30s; longer than ~30s is hard to sustain visually
+  without becoming tedious.
+
+When the brief says `acrylic`, `liquid`, `paint`, `kinetic`,
+`motion graphics`, `animated`, `abstract`, `viscous`, `fluid`,
+`transitions`, `typographic`, or is about visual texture/medium
+rather than people → this is your concept.
+
+#### 4. Cinematic
+
+High-quality lifestyle footage. Vibey, emotional, focused on the
+*feel* of using/wearing/being-around the product. NOT organic
+(it's polished), NOT direct response (no hard CTA structure),
+NOT animated (it's real-world footage, not abstract motion).
+
+Authoring rules:
+- Backend: Veo 3.1 standard (not fast) for hero shots, $0.50/s ×
+  4-8s. Optional Nano Banana 3 character refs if recurring people.
+- Pacing: 3-6s per shot, deliberate breathing room, ambient sound.
+- Visual register: 35mm anamorphic or 50mm prime preamble (see
+  "Cinematography lock" section). Shallow DOF, warm color grade,
+  golden-hour or interior practicals.
+- Text: HTML overlays minimal — wordmark in corner, maybe one
+  positioning line at the end. The aesthetic does the selling.
+- Brand visibility: wordmark visible by 3s; product hero shot
+  by ~10s into a 25s spot.
+- Emotion-first: the script is a feeling, not a feature list.
+
+**Editorial is a narrow opt-in sub-style here**, not a default.
+Use it ONLY when the brief explicitly asks for luxury / lifestyle
+editorial (off-white, Apartamento / 032c / Hypebeast magazine-
+spread typography), AND the brand's actual ads use that
+vocabulary. Don't reach for editorial because the brand "feels
+premium" — premium brands like Apple and Nike use cinematic
+minimalism, not editorial. Editorial-specific notes:
+- Off-white / cream backgrounds, deep maroon or charcoal type.
+- Serif/sans mix on type cards.
+- Real metadata only (real product code, real colorway name) —
+  no fake lens specs, no hex codes as captions, no invented
+  series taxonomies. The 008 v2 trap was reaching for editorial
+  vocabulary without the brief asking for it.
+
+When the brief uses words like `cinematic`, `lifestyle`,
+`emotional`, `aspirational`, `premium`, `vibey` → this is your
+concept. Default for car ads, fashion lookbooks, hospitality,
+high-end consumer.
+
+#### Picking when ambiguous
+
+If the brief doesn't make the concept obvious, fall back in this
+order:
+1. What concept do the brand's actual published ads
+   (`brandwork brand.ads`) live in? Match that.
+2. What concept does the medium imply? (Talking-head footage →
+   organic. Paint/abstract → animated. Polished real-world →
+   cinematic. Hook+CTA-shaped → direct response.)
+3. Ask the user.
+
+Don't pick by genre/brand-vertical priors — a car ad isn't
+automatically cinematic, a skincare ad isn't automatically
+organic. Look at what the brand actually publishes.
+
+> Studio product-on-pedestal, single key light from top-front at 45
+> degrees, deep shadow on right, warm tungsten 3200K, glossy black
+> sweep, slow rotational push-in, 9:16 portrait
+
+Every `wavelet shot txt2vid` prompt is then `<scene-specific subject +
+action>` + `, ` + `<cinematography preamble pasted verbatim>`. The
+preamble is the constant; only the subject/action varies between
+shots. Veo (and any modern text-to-video model) keys heavily on
+cinematographic vocabulary — repeating "35 mm anamorphic, A24-style
+color grade, amber tungsten key" across every shot forces Veo into
+the same visual register every time. The cuts read as one shoot, not
+three commercials stitched together.
+
+Worked example (Whirlpool / KitchenAid stand mixer, premium kitchen,
+warm morning light). Strategy.md carries:
+
+```
+## Cinematography lock
+
+50 mm full-frame, medium-close framing, warm morning window light
+camera-left at 3200K, deep brown-and-cream palette, gentle film grain,
+A24 domestic-warm grade, locked 9:16 portrait
+```
+
+Shot 3 prompt — "macro of dough folding over the hook" — is then
+constructed as:
+
+```
+Macro: dough folds over the spiral hook as the mixer turns at low
+speed, 50 mm full-frame, medium-close framing, warm morning window
+light camera-left at 3200K, deep brown-and-cream palette, gentle film
+grain, A24 domestic-warm grade, locked 9:16 portrait
+```
+
+Every other shot's prompt ends with the same comma-prefixed clause,
+character-for-character. No paraphrasing, no synonyms.
+
+The lock breaks only for a deliberate transition — a flashback in
+different stock, a dream sequence in different grade. If you break
+the lock on purpose, note which shots break and why in `strategy.md`
+so the `color-grade-coherence` lint's finding is interpretable. The
+lint will fire; the strategy doc is what tells the reviewer the fire
+was intentional.
+
+## Shot count and pacing — break the 3-clip default
+
+The default failure mode for a freshly-spun director is 3-4 shots at 4 s
+each for a 12 s spot. That cadence reads as corporate stock footage —
+the 005 v4 run produced exactly this pattern and Shane called it out
+verbatim: "feels like slow stock footage style every time." Three slow
+clips strung together with crossfades is the AI-default look. Avoid it
+on every spot that isn't an explicitly meditative / luxury register.
+
+### Corrective default — 12 s spot, 6-8 cuts
+
+- Aim for 6-8 cuts, average shot length 1.5-2 s.
+- First shot ≤ 1.5 s — this is the scroll-stop hook. If it doesn't work
+  as a thumbnail, it doesn't work.
+- Last shot can run longer (2-3 s) if it's a CTA card or wordmark hold.
+- One shot of "rest" (2-3 s) is fine mid-spot for breathing; everything
+  else should be tighter.
+
+### Shot duration math relative to Veo
+
+Veo accepts integer durations from `{4, 6, 7, 8}` seconds, so a single
+`wavelet shot txt2vid` call always produces ≥ 4 s of footage. Three
+strategies for fitting more cuts than Veo calls:
+
+- Use the FIRST 1-2 s of a Veo clip and discard the rest — the
+  `cuts.edl` from `wavelet velocity validate` trims each clip to its
+  used window. Many short cuts can come from few Veo calls.
+- Run more Veo calls at minimum duration (4 s). Costs more, but every
+  cut is generated with intent for its own moment.
+- Mix: 2-3 hero Veo calls at 4 s held in full, plus 4-5 quick cuts
+  trimmed from a single longer Veo call. At veo-lite ($0.40 per 4 s)
+  the 005 budget fits 8-10 calls comfortably.
+
+### Worked KitchenAid example — 12 s, 7 cuts
+
+- `0.0-1.2 s` — close-up: dough hitting the bowl (impact, hook)
+- `1.2-2.5 s` — hands clicking the tilt-head down
+- `2.5-4.5 s` — macro: dough hook rotating, dough catching shape (the
+  only "rest")
+- `4.5-6.5 s` — bowl rotation, dough forming
+- `6.5-8.5 s` — pulling the finished loaf from the oven
+- `8.5-10.0 s` — wide of the bread on the table
+- `10.0-12.0 s` — CTA card (wordmark + button)
+
+Hard cuts throughout. Every Veo prompt shares the UGC preamble (see
+Shot-prompt-prefix). Total veo-lite cost ≈ 7 × $0.40 = $2.80; fits the
+$5 budget with $2 headroom for music + retries.
+
+## CTA mode — direct-response vs lifestyle
+
+### Hard rule — the CTA scene is HTML, not a Veo clip
+
+The last scene in a direct-response spot is ALWAYS an HTML
+composition file (e.g. `scenes/07-cta.html`) with these required
+elements:
+
+- `<img src="<real-logo-url-from-brandwork>">` — the brand logomark
+  or wordmark URL pulled from the `brandwork brand.brief` response's
+  `logo_url` field. Never text-render a wordmark unless the brand is
+  wordmark-only with no logomark.
+
+  **DO NOT fetch `/apple-touch-icon.png`, `/favicon.ico`, `/favicon.png`,
+  `<link rel="icon">`, or any `manifest.json` icon as the brand logo.**
+  Those are 192×192 app-launcher icons — they are NOT the wordmark.
+  Using one as the CTA logo is a known failure mode (005 v5 fetched
+  `kitchenaid.com/apple-touch-icon.png` and rendered a generic "K"
+  square in every cut).
+
+  **If `brandwork brand.brief` does not return a `logo_url`** (today, it
+  often doesn't), fall back to CSS-typeset brand text in the brand's
+  wordmark font — `<h1 class="wordmark">KitchenAid</h1>` with
+  `font-family: "Helvetica Neue Black", Helvetica, Arial Black,
+  sans-serif; font-weight: 900; letter-spacing: -0.02em;` (substitute
+  the brand's actual wordmark family when known). A textual lockup
+  reads as deliberate; a favicon reads as a bug.
+- One CTA line, ≤ 7 words and ≤ 40 characters, authored as
+  CSS-typeset HTML text — not baked into a generated image.
+- One real `<button>` element with CSS styling. Not a `<div>` styled
+  like a button. Not an `<img>` of a button.
+- Optional URL text or a `<canvas>`-rendered QR beneath the button.
+- A background — either the brand's palette swatch (from `brandwork
+  brand.brief` `palette_json`), a still product image (from `brandwork
+  brand.product`), or the last Veo shot frozen as a still.
+
+Veo clips do NOT belong in CTA scenes. A Veo-generated "studio
+product photography" clip used as a CTA is a v5-style failure mode
+that conflates "asset generation" with "creative direction." The CTA
+scene's HTML simply omits the inline `<video>` element — it's
+HTML-only on a solid-color or gradient background, no Veo underlay.
+
+**Do not spend Veo credits on the CTA.** A standard CTA is solid
+color matte + HTML/CSS overlay — wordmark + headline + button +
+optional URL. No video gen needed. If you find yourself prompting
+`shot txt2vid "studio product photography for CTA…"`, STOP. That's
+~$1 per attempt for an asset that should be pure HTML.
+
+Lifestyle mode (the alternative): no separate CTA scene at all. The
+last shot of the spot just IS the last beat, and a small wordmark
+bug may appear as an HTML overlay element inside the previous
+scene's HTML. Still no Veo "CTA" clip.
+
+**CTA URL discipline — pull from brandwork, never invent.**
+The URL on the CTA card MUST be the `domain` field from
+`brandwork brief <domain>` or `brandwork brand fetch <domain>`. Read
+the JSON output, find the `brand.domain` (or top-level `domain`)
+field, paste it into the HTML verbatim. Common failure mode: agent
+re-reads its own brief.md and writes a "rememembered" version of the
+domain (e.g. `hellobubble.com` when brandwork returned
+`bubbleskincare.com`). That ships a CTA that goes nowhere. Cross-
+check the CTA scene's URL against the brandwork JSON before render.
+
+Worked example for KitchenAid (direct-response mode):
+
+```html
+<!-- scenes/07-cta.html -->
+<div class="cta">
+  <img src="https://media.brand.dev/<...>/kitchenaid.svg" class="wordmark">
+  <h2>The icon. For your kitchen.</h2>
+  <button class="primary">Shop at KitchenAid</button>
+  <p class="url">kitchenaid.com</p>
+</div>
+<style>
+  .cta { background: #ffffff; display: grid; place-items: center; gap: 32px; height: 100vh; }
+  .wordmark { width: 60vw; }
+  .primary { background: #c8102e; color: white; padding: 24px 48px; border: 0; font-size: 36px; border-radius: 8px; }
+  .url { font-size: 28px; color: #333; }
+</style>
+```
+
+Real logo URL from brandwork, CSS button, brand color from the
+palette. No Veo.
+
+A last-shot CTA card (brand wordmark + tagline + button) is right for
+some commercials and wrong for others. A Liquid Death shock-comedy
+spot doesn't end with "BUY NOW"; a Whirlpool / KitchenAid direct-mail
+spot probably does. Decide once, in Phase 1's brand-research step —
+not in the director recipe and not at compose time.
+
+During `brandwork brand.brief <domain>` + `brandwork ads`, inspect the
+brand's published ads and apply this rule:
+
+- If brand ads lean heavily on "buy now / shop the link / use code
+  XYZ / link in bio" copy → **direct_response**
+- If brand ads lean on aspirational / mood / "available where good X
+  is sold" without explicit conversion CTAs → **lifestyle**
+- When in doubt, **lifestyle**. Out-of-context CTAs feel like spam;
+  missing a CTA on a lifestyle brand is invisible.
+
+Record the decision in `strategy.md` under a `CTA mode` line, with
+the reason:
+
+```
+CTA mode: direct_response — reason: 3 of 5 sampled KitchenAid Meta
+ads end with "Shop now" / "Use code BAKER15"
+```
+
+### Direct-response mode
+
+- Last 1.5-2 s of total runtime is a dedicated CTA card.
+- Brand wordmark animates in. **Use the real logo URL** from the
+  `brandwork brand.brief` response — never fabricate the wordmark or
+  text-render it in display type, unless the brand has only a
+  wordmark (no logomark) and you're using the brand's actual
+  typeface.
+- One-line CTA copy, ≤ 7 words and ≤ 40 characters: "shop the iconic
+  stand mixer", "use code BAKER15", "available at every Whole Foods".
+- One button — real CSS or inline SVG, never an image-of-a-button.
+  White rounded-rect with brand-colored fill, or brand-colored fill
+  with white text. Touch-target sized (≥ 88 px tall at 1080×1920).
+- Optional URL or QR code beneath the button for offline-viewable
+  contexts (out-of-home displays, embedded video, screenshots).
+- The card still respects the 9:16 platform safe zones — keep the
+  button and URL above the bottom 320 px on TikTok, etc. `wavelet
+  lint --platform <p>` catches violations if you forget.
+
+Direct-response example, KitchenAid Whirlpool stand mixer: last 2 s
+holds the animated wordmark, the line `AT THE HEART OF HOME` set in
+the brand's display face, a `Shop the iconic mixer` button (cream
+fill on the brand's signature red), and `kitchenaid.com` set small
+beneath the button.
+
+### Lifestyle mode
+
+- Last shot stays atmospheric — same cinematography preamble as the
+  rest of the spot, no register break.
+- Brand wordmark MAY appear as a small bug in a corner, ≤ 8 % of
+  canvas height, animated subtly (fade-in only, no slide / no
+  bounce).
+- NO button, NO "shop now", NO URL, NO QR.
+- Optional one-line tagline — the brand's actual slogan from
+  `brandwork brand.brief` — set in the same display type as the rest
+  of the spot, sized for in-feed legibility (cap-height ≥ 56 px at
+  1080×1920 per the text-readability lint).
+
+Lifestyle example, Liv Conscious wellness: last shot stays cinematic
+on the product, the `Liv Conscious` wordmark fades in lower-left at
+5 % of canvas height, 14 px wordmark icon next to it, no button, no
+URL, runtime carries on the visual register the rest of the spot
+established.
 
 ## Step 1 — pick a concept and write the 9-line brief
 
@@ -271,6 +979,242 @@ FADE OUT.
 
 Save to `script.fountain`.
 
+### Step 2.5 — copy-budget gate (`wavelet screenplay validate`)
+
+Before moving to storyboard, validate that the script's copy density
+fits the declared duration. Over-stuffed copy is the most common
+pre-flight failure — it doesn't get fixed by better cuts or better
+shots, because the message physically can't be delivered in the time
+available.
+
+```bash
+wavelet screenplay validate script.fountain --duration 12 --pretty
+```
+
+Exit 0 = script fits within ±10% of the declared duration. Exit 3 =
+`over_budget`; refuse to advance. The pipeline gate
+(`screenplay_duration_fits`) blocks the storyboard stage until the
+validate call exits 0.
+
+**Copy budget by duration** — keep total copy under these counts
+unless you genuinely have a hook that can sustain a denser read:
+
+| Duration | VO words max | Captions max | When over |
+|---|---|---|---|
+| 6s  | 15 | 1-2 | icon-led, ≤1 line VO |
+| 10s | 25 | 2-3 | strong visual hook |
+| 12s | 30 | 2-3 | the typical Reels target |
+| 15s | 38 | 3-4 |  |
+| 20s | 50 | 4-5 | full claim+benefit+CTA fits |
+| 30s | 75 | 5-6 | comfortable narrative arc |
+
+**Decision tree when validate fails:**
+
+1. **Cut copy first.** Most "must say" claims are author indulgence;
+   the viewer reads the visual. Trim VO to the hook + the proof + the
+   ask. Three beats, not seven.
+2. **Lean visual.** If the message is genuinely visual (icons,
+   product, expression), drop VO and let on-screen icons + a short
+   caption do the work over a music bed. Stacking VO + reading lets
+   you carry more information per second, but only if the VO and the
+   captions are NOT saying the same thing.
+3. **Extend duration.** Only when the brief permits. Bumping a 12s
+   spot to 20s is usually a re-spec, not a fix.
+
+## Step 2.7 — character refs for identity consistency across cuts
+
+If the brief calls for the **same person** to appear across multiple cuts
+(UGC, talking-head, lifestyle with a recurring actor), Veo's identity
+drift is the #1 failure mode. Lock characters with reference images
+*before* storyboard planning runs.
+
+Two-step authoring:
+
+1. **Pick one reference image per face you need.** A clean front-facing
+   still works best. **Backend choice depends on the register:**
+
+   - **UGC / TikTok talking-head / creator-to-camera ads** —
+     `wavelet shot still --backend google-nano-banana-3` (the default
+     `still` backend; no flag needed). Nano Banana 3 natively
+     handles `"iPhone UGC style"` / `"TikTok aesthetic"` cues and
+     bakes in convincing-amateur skin texture, asymmetric features,
+     visible pores, and on-purpose imperfection — exactly the
+     ingredients Veo 3.1 needs to extend the clip as a real creator
+     instead of an AI portrait. ~$0.04/image. Community research
+     (r/aivideo, Magic Hour, Atlabs, AdLibrary, ugcmaker.org —
+     2025-2026) is unanimous that Flux Schnell's symmetric polished-
+     portrait baseline poisons downstream UGC video gen.
+   - **Cinematic / luxury / non-UGC photoreal portraits** — also
+     `google-nano-banana-3` (the default). Nano Banana 3 handles the
+     clean studio headshot register just as well as Flux Schnell does
+     and produces better identity coherence + skin texture, so there's
+     no register that wants Flux as the actual default. Cost delta over
+     a 3-4 ref eval is ~$0.15 — negligible vs Veo's per-shot spend.
+   - **`fal-flux-schnell` is opt-in only** — keep it available for
+     cost-constrained variant batch-rolls (e.g., generating 20 candidate
+     portraits at $0.003 each before promoting a winner to Nano Banana
+     re-roll), or when nano-banana is rate-limited. Don't reach for it
+     as the default character-ref path.
+
+   For ECU hand cutaways, capture a **separate** hands-only reference
+   — face-conditioning leaks into hand quality if reused.
+
+   **How to author the reference image — isolated subject, not in-scene.**
+   Google's docs are explicit that the role of a reference image is to
+   "preserve the subject's appearance in the output video," and every
+   example on the Gemini API page uses product-style photography on a
+   plain backdrop (see <https://ai.google.dev/gemini-api/docs/video>).
+   The 010 eval generated face refs with the bathroom window, beige
+   wall, and towel bar baked in — Veo treated those props as identity
+   features and re-rendered them across every cut. Don't do that.
+   Generate refs as **isolated-subject portraits against a neutral
+   backdrop**, never as in-scene compositions. Concrete prompt
+   templates for the underlying `wavelet shot still` call:
+
+   ```text
+   studio portrait headshot, [SUBJECT], neutral light-grey backdrop,
+   soft front light, no environment, no props, no scene context, eye
+   contact with camera, sharp focus, 9:16 portrait, photorealistic
+   ```
+
+   **UGC variant — when the brief is a talking-head TikTok / Reels
+   creator ad.** The neutral-backdrop studio still above produces too-
+   symmetric "AI portrait" identity priors that Veo 3.1 then extends
+   as obvious-AI footage. For UGC, generate the ref with imperfection
+   cues baked in. Still keep it isolated (no full scene context — the
+   bathroom-wall / towel-bar leak from the 010 eval still applies),
+   but lean into the iPhone-selfie register:
+
+   ```text
+   iPhone UGC style selfie still, [SUBJECT], 23-year-old, light
+   brown hair slightly messy, freckles, visible pores, asymmetric
+   features, uneven skin tone, no makeup or no-makeup-makeup,
+   neutral light-grey backdrop, natural ambient daylight from
+   camera-left, eye contact with camera, casual cotton tank top,
+   wrinkled fabric, slightly grainy, 9:16 portrait, photorealistic,
+   not retouched, not a professional headshot
+   ```
+
+   Negative prompt for the ref still:
+   `studio lighting, beauty filter, perfect skin, ring light, DSLR,
+   makeup, retouched, symmetric, model headshot, glamour photography`.
+
+   The principle: every imperfection in the still is an imperfection
+   Veo 3.1 will preserve when it ref-conditions the talking-head clip.
+   You are pre-loading the "real creator" identity prior. See the
+   "UGC talking-head register" cinematography preamble below for the
+   matching shot-prompt scaffold.
+
+   And for hands:
+
+   ```text
+   hands isolated against neutral grey backdrop, [HAND DESCRIPTION +
+   PRODUCT IF ANY], soft diffuse light, no environment, no scene
+   context, macro framing, sharp focus, 9:16 portrait, photorealistic
+   ```
+
+   Use an opaque grey backdrop, **not** a transparent PNG —
+   text-to-image models render transparency literally (checkerboard,
+   alpha noise, or a fabricated background filling in the void) rather
+   than reading it as "no background." A solid neutral grey is the
+   least likely to leak into the downstream Veo generation.
+
+   **Aspect ratio for refs — pass `--image-size` explicitly.**
+   The text "9:16 portrait" in the prompt body is a hint, not a
+   constraint; Flux Schnell defaults to landscape and will return
+   1024×576 unless told otherwise via the `--image-size` flag. The
+   useful enum values:
+   - `portrait_4_3` — 768×1024 (3:4). Close enough to 9:16 for ref-
+     conditioning purposes; safe default for face/hands refs.
+   - `portrait_16_9` — 720×1280 (9:16 vertical, named by Fal as
+     "16:9 rotated"). Use when you need true 9:16.
+   - `square_hd` / `landscape_4_3` / `landscape_16_9` — non-vertical;
+     don't use for character refs.
+
+   Veo 3.1 reads any aspect ratio for the conditioning image, so
+   `portrait_4_3` is fine; the value matters more for downstream
+   compositing (when the ref shows on-screen as a Ken Burns layer).
+   Pass `--max-cost 0.01` minimum — Flux Schnell is $0.003/image but
+   the default budget is $0, so without the flag you get
+   `exit 3: estimated cost $0.005 exceeds budget $0.0000`.
+
+   Veo 3.1 ref-to-video accepts at most **three** reference images per
+   call (Google Gemini docs cap, same source as above). Plan refs
+   accordingly: typically one face + one hands + optionally one
+   product-hands.
+2. **Register each character** by Fountain CHARACTER cue (uppercase
+   normalized — `ALEX`, `ALEX (V.O.)` and `Alex` all collapse to
+   `ALEX`):
+
+   ```bash
+   wavelet character define ALEX --reference ./alex-face.jpg \
+     --character-type full-body
+   wavelet character define ALEX --reference ./alex-hands.jpg \
+     --character-type hands
+   ```
+
+   The flag is `--character-type` (NOT `--type` — clap rejects `--type`
+   with exit 2). Each invocation writes a clip-HTML at
+   `<workdir>/refs/character/<slug>.clip.html`. Multiple
+   `--character-type` values for the same name coexist; the planner
+   picks the right one per shot.
+
+The storyboard planner **auto-loads** `refs/character/` and routes any
+Dialogue shot whose CHARACTER cue matches a loaded ref through
+`Generation::RefConditioned { backend: "fal-veo3-ref", ... }`. ECU
+hand-cutaway Action paragraphs (heuristic: text contains hand / hold /
+grip / fingers + ECU shot type) prefer a same-character `hands` ref
+over the `full-body` ref. The verifier WARNs on face-leak risk when
+only `full-body` exists for an ECU hand shot.
+
+Three `character_type` values:
+
+| type            | use for                                   |
+|-----------------|-------------------------------------------|
+| `full-body`     | the canonical actor reference (face)      |
+| `hands`         | ECU cutaways of the same character's hands|
+| `product-hands` | hands gripping a specific product / pack  |
+
+Reference precedence in ECU hand shots: `product-hands` > `hands` >
+`full-body` (with WARN). Pass `--no-characters` to `storyboard plan`
+to opt out of auto-loading for this run.
+
+### Veo prompt structure — the 5-slot prose recipe
+
+Veo wants descriptive narrative prose, not XML, not tagged sections, not
+bullet lists (see <https://ai.google.dev/gemini-api/docs/video> on
+prompting). What works well — reverse-engineered from the 010 eval
+agent's prompts, which produced consistent-looking output despite the
+ref-conditioning being broken — is to author each Veo prompt as a
+single prose paragraph that touches five slots in this order:
+
+1. **Subject identity** — who or what is on screen. Pull the character
+   bible verbatim ("a 28-year-old woman with light olive skin and
+   freckles, glossy collarbone-length brunette hair"). This is the slot
+   the ref image conditions; describe it in writing too so the model
+   has a textual anchor when the ref leaks.
+2. **Wardrobe** — what the subject is wearing, in one beat
+   ("cream ribbed cotton tank top"). Drop wardrobe entirely on ECU
+   hand-only shots.
+3. **Environment** — where they are and what's around them, in one or
+   two beats ("at her bright bathroom vanity with soft daylight from
+   a frosted window camera-left"). On hand-cutaway shots, this
+   collapses to a surface and a backdrop ("cream marble bathroom
+   counter softly out of focus").
+4. **Light direction** — explicit cardinal-direction lighting cue
+   ("soft window daylight from camera-left, slightly overexposed in
+   highlights"). Veo will otherwise pick its own and your cuts won't
+   match.
+5. **Camera grammar** — framing, lens, motion, format, color
+   ("Medium close-up, chest-up framing, eye contact with lens,
+   handheld iPhone 16 Pro Max at chest height, Apple HDR camera-native
+   color, 9:16 portrait, faint rolling-shutter wobble").
+
+Keep slots 4 and 5 *identical strings* across every cut in a UGC spot —
+that's how you get continuity. The variable beats live in slots 1–3.
+Dialogue goes after the camera-grammar slot, framed as direct speech
+("…says brightly in a natural American accent: '<line>'").
+
 ## Step 3 — run the agent-side pipeline
 
 All free, deterministic, and reversible:
@@ -288,6 +1232,31 @@ Read each output. `velocity.json`'s `mean_bpm` tells you the music's
 target tempo. `storyboard.json`'s `shots[].subject` tells you what each
 shot is about. The continuity report flags 180° / motion / scale-jump
 issues — if there are errors, reorder the screenplay or add a transition.
+
+### Transitions discipline — hard cut by default
+
+Default to hard cut. Every cut is a hard cut unless the screenplay's
+Fountain `> TRANSITION:` directive explicitly names one (e.g. `> WHIP
+PAN RIGHT:`, `> CROSS DISSOLVE:`, `> MATCH CUT:`). When you do specify
+a transition, it must be motivated by content — a whip-pan triggered
+by an in-scene horizontal camera move, a cross-dissolve only for a
+deliberate time-passing beat, a match cut on shared shape/motion
+across the boundary.
+
+The `transitions classify` stage WILL produce an empty or near-empty
+`transitions.json` on a hard-cut spot. That is the desired state. If
+the storyboard plan emits transitions without content motivation,
+delete them from `transitions.json` before running the asset stage —
+and from `commercial.html` before render. In the manifest,
+hard cut means omitting `data-transition-in` entirely (the default is
+`cut`), not setting `data-transition-in="crossfade"` with a short
+duration.
+
+Anti-pattern flagged on the 005 v4 run: the agent added transitions
+between every scene boundary by default. The result reads as corporate-
+AI cadence — every cut softened, no editorial decisions visible. Hard
+cuts read as decisive editorial intent. It is the difference between a
+spot that feels alive and one that feels like a screensaver.
 
 ## Step 3.25 — fill structured shot attributes (L-Storyboard)
 
@@ -368,7 +1337,7 @@ wavelet music gen \
   --style "<2-3 line style description>" \
   --duration <total_secs> \
   --backend google-lyria \
-  --max-cost 0.10 \
+  --max-cost 0.40 \
   --out music.mp3 \
   --pretty
 ```
@@ -377,6 +1346,13 @@ Default `--backend google-lyria` (Lyria 3 Pro, ~$0.001/sec). For short
 clips (<10s) the policy auto-falls-back to `google-lyria-3-clip`
 (~$0.0004/sec). Both are Google-direct — no broker, single
 `GOOGLE_API_KEY`.
+
+**Budget floor: `--max-cost 0.40`** for a 30s spot at Lyria 3 Pro
+($0.001/sec × 30s = $0.03, but the cost gate compares against
+generation duration which can be ~3-4× the output for long clips —
+0.40 is the empirical floor that doesn't refuse). Setting `0.10`
+yields `exit 3: estimated cost $X exceeds budget` on the first try
+every time; the agent burns ~2 retries before figuring it out.
 
 Validate:
 
@@ -390,15 +1366,51 @@ detected. Use those onsets as snap targets for shot boundaries.
 ## Step 5 — generate the shots
 
 ```bash
-# per-shot txt2vid via Veo
+# per-shot txt2vid — default backend is fal-veo3-fast ($1.00 / 4 s)
 wavelet shot txt2vid "<rich scene + motion prompt>" \
-  --duration 5 --max-cost 0.50 \
+  --duration 4 --max-cost 1.20 \
   --out shots/shot-N.mp4 --pretty
 ```
 
-Draft passes run on Veo 3.1 Fast (~$0.05/sec); hero shots upgrade to
-full Veo 3.1 (~$0.50/sec). The `storyboard.json` tier flag selects
-which tier each shot runs on.
+**Default backend: `fal-veo3-fast`** ($0.25/s × 4s = $1.00/clip).
+Allocate `--max-cost ≥ 1.20` on every shot or the cost gate refuses
+with `estimated cost $1.00 exceeds budget $0.X`. Fal Veo durations
+quantize to {4s, 8s} — values ≤ 5s round to 4s.
+
+Alternates by `--backend`:
+- `fal-veo3` — Standard tier on Fal, $0.50/s = $2.00/4s. Slightly
+  better fidelity; use sparingly for hero shots.
+- `fal-veo3-ref` / `fal-veo3.1-ref` — Veo 3.1 reference-to-video,
+  ~$2.00 / 8 s (smoke-verified 2026-05-23). Conditions on up to 3
+  character/scene refs for identity consistency (Google's documented
+  cap; 4+ rejects). **Required when the storyboard reports a shot as
+  `Generation::RefConditioned`** — pass each ref the storyboard
+  supplied with `--reference <PATH_OR_URL>` (repeatable). Local paths
+  are uploaded to fal-storage; HTTPS URLs go through directly.
+  Without `--reference`, `fal-veo3-ref` rejects with
+  `ref-to-video requires --reference`.
+- `fal-veo3-ref-fast` / `fal-veo3.1-ref-fast` — same model family,
+  fast tier. **Duration is locked to 8s** — Fal's schema literal-
+  checks `"8s"` and HTTP-422s any other value. Plan storyboard math
+  accordingly (a 16s spot = 2 ref-shots, a 24s spot = 3 ref-shots).
+  If you need a 4s clip, use plain `fal-veo3-fast` with linguistic
+  identity-lock; the trade-off is no visual reference conditioning.
+- `veo` / `veo-fast` / `veo-lite` — Google direct. Currently quota-
+  exhausted; will fail HTTP 429 RESOURCE_EXHAUSTED. Don't use until
+  Google quota resets.
+
+For a `RefConditioned` shot the dispatch looks like:
+
+```bash
+wavelet shot txt2vid "DANA at her vanity, soft window light, …" \
+  --backend fal-veo3-ref \
+  --reference ./refs/character/dana-full-body.jpg \
+  --duration 4 --max-cost 1.20 \
+  --out shots/shot-2.mp4 --pretty
+```
+
+The storyboard plan output enumerates the references per shot; the
+agent's job is to forward them through to the shot command unchanged.
 
 Prompt construction (in order, comma-separated): subject, action,
 setting, composition, atmosphere, tech. The standard negative prompt
@@ -439,13 +1451,28 @@ write on a hand-crafted brand site renders here.
 
 1. **`html` and `body` must have `background: transparent`** so the
    generated video shows through where your HTML doesn't paint.
-2. **The per-scene background video comes via the scene's `video_bg`
-   field** (in `comp.json`) or via the top-level `<section
-   data-scene-href="…">` reference (in `index.html`). Inline `<video>`
-   inside a scene HTML file is not rendered today (see "What does not
-   work" below). Top-level `<audio>` elements in `index.html` are bound
-   to the comp's audio cue list — that's the canonical place for music
-   + VO.
+2. **The per-scene background video is wired by an inline `<video>`
+   element INSIDE each scene HTML file** — NOT via any `data-video-bg`
+   attribute on `<section>` in `commercial.html`. (The renderer parses
+   `<video>` in `compose/resolve.rs`; `data-video-bg` is unsupported
+   and silently dropped, orphaning Veo clips at compose time. Earlier
+   versions of this doc claimed `data-video-bg` worked — they were
+   wrong.) Canonical scene pattern:
+
+   ```html
+   <body>
+     <video src="../shots/shot-N.mp4" autoplay muted playsinline
+            style="position:absolute;inset:0;width:100%;height:100%;
+                   object-fit:cover;z-index:-1;"></video>
+     <!-- your HTML overlays go here, on top of the video -->
+   </body>
+   ```
+
+   The `z-index:-1` pushes the video behind the overlay layer. The
+   `position:absolute;inset:0` covers the whole frame. `object-fit:
+   cover` crops to fill (use `contain` if you need letterbox behavior).
+   Top-level `<audio>` elements in `commercial.html` are bound to the
+   comp's audio cue list — that's the canonical place for music + VO.
 
 ### The supported palette — every one of these works today
 
@@ -713,6 +1740,67 @@ Ask yourself:
 - **Existing text in the shot.** `wavelet image ocr <png>` (stubbed
   pending Fal got-ocr) detects baked-in text so you don't stack overlays
   on plate numbers or storefront signage.
+
+### Halo-contrast lint and the post-render check
+
+The `text-readability` rule's contrast pass measures **glyph ink
+pixels vs a dilation halo just outside them** — not the bbox region.
+This catches white-text-on-bright-image cases that the old min/max
+region scan missed. The check runs at two stages:
+
+- **Lint-time** (`wavelet lint commercial.html`) — renders the scene
+  HTML and runs halo contrast on the result. Catches CSS-only color
+  mistakes (white on `background: #fff`).
+- **Post-render** (`wavelet lint commercial.html --mp4 commercial.mp4`)
+  — samples 4 frames from the final MP4 via ffmpeg and runs the same
+  measurement against the actual composited pixels (HTML overlay +
+  Veo video underneath). This is the only stage that sees the same
+  pixels the viewer will. Run it before declaring `compose` complete.
+
+### Text color rules — bias toward maximum contrast
+
+Default to one of these two combinations unless the design genuinely
+requires otherwise:
+
+- **White text on a saturated brand color or dark scrim** — works
+  against almost any image.
+- **Black text on a white panel** — for product / quote / data
+  callouts where the body type carries weight.
+
+Avoid **color-on-color** unless the two are far apart in luminance
+(not just hue). Two saturated colors with similar L* (e.g. mid-tone red
+text on mid-tone green) read as muddy and fail WCAG even when they
+look distinct on a swatch.
+
+### When contrast can't be achieved against the video underlay
+
+The halo-contrast lint will tell you. In order of preference:
+
+1. **Wrap the text in a panel.** A solid (or semi-opaque)
+   `background-color` div around the text element gives the halo a
+   stable background to measure against. The panel's color becomes the
+   contrast denominator, not the unpredictable Veo frame.
+   ```html
+   <div class="cta-panel"><span class="cta">Shop now</span></div>
+   <style>
+     .cta-panel { background: #fff; padding: 16px 24px; border-radius: 8px; }
+     .cta { color: #111; font-weight: 800; }
+   </style>
+   ```
+2. **Add a scrim under the text.** A semi-transparent dark rect under
+   white type (`rgba(0,0,0,0.55)` is a common floor). Less visible than
+   a full panel but enough to push the ratio over AA.
+3. **Re-pick the shot composition.** If the agent has an alternate
+   variant (or budget to roll another), bias toward shots with
+   predictable dark or light negative space where the text will sit.
+4. **Subtle drop shadow as a last resort.** A tight, low-opacity drop
+   shadow (`text-shadow: 0 1px 2px rgba(0,0,0,0.5)`) can lift contrast
+   just enough to pass the lint without breaking the look. Use this
+   only when (1) and (2) clash with the design language — it's a
+   patch, not a design choice.
+
+**Never** ship text that fails the post-render halo contrast lint. If
+the lint flags it, the viewer will struggle to read it.
 
 ## Step 6.5 — ten worked scene examples (study these)
 
@@ -1205,10 +2293,11 @@ of writing. If you write them, expect nothing to render.
 - **JavaScript** — `<script>` tags are silently ignored. All animation
   goes through CSS. There is no canvas, no JS-driven render hook, no
   user event loop. Don't write JS.
-- *(inline `<video>` and `<audio>` inside scene HTML now ship — see
-  Step 6 for the canonical idiom. Authors should prefer the inline
-  form; `video_bg` in `comp.json` remains as a lower-level escape
-  hatch for cases that need explicit frame control.)*
+- *(inline `<video>` and `<audio>` inside scene HTML are supported —
+  see Step 6 for the canonical idiom. **`data-video-bg` on a
+  `<section>` in `commercial.html` is NOT supported by the renderer;
+  it is silently dropped at compose time and orphans the Veo clip.**
+  Always embed the inline `<video>` inside the scene HTML body.)*
 - **`position: sticky`, `:hover`, `:focus`, scroll-driven anything** —
   there is no scroll, no hover, no focus in offline video render.
   Selectors that depend on user interaction don't fire.
@@ -1266,71 +2355,94 @@ durations.
 | `data-fade-out` | Fade-out duration                                              |
 | `data-volume`   | Float 0..1, default `1.0`                                      |
 
-Per-scene background video is currently still wired via `comp.json`'s
-`video_bg` field — the `<section>` manifest reads that path from the
-scene's parent `comp.json` when present, otherwise the scene renders
-with transparent background only. Once wb-9h9u lands the scene HTML
-itself will carry the `<video>` tag inline.
+Per-scene background video is wired by an inline `<video src=
+"../shots/shot-N.mp4" autoplay muted playsinline style="position:
+absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;
+">` element inside the scene HTML body — see Step 6's two structural
+rules. `data-video-bg` on a `<section>` is silently ignored by the
+renderer.
 
 Render with:
 
 ```bash
-wavelet render index.html -o commercial.mp4
+wavelet render commercial.html -o commercial.mp4
 ```
 
-The CLI auto-detects `.html` vs `.json` and routes to `load_index_html`
-or `Composition::from_json_path` accordingly.
+HTML is the only accepted input. Any non-HTML input is rejected at
+exit 3 with no fallback.
 
-## Step 7.5 — the comp.json escape hatch
+## Step 7.5 — composition input rule
 
-For tests, advanced motion control, and per-scene `video_bg` wiring
-you'd rather not stuff into the HTML manifest, `comp.json` is the
-lower-level format. The same `wavelet render comp.json -o out.mp4`
-command works.
+**`wavelet render` accepts ONLY a `commercial.html` manifest.** Any
+other input — `.json`, `.toml`, `.yaml`, anything — is rejected with
+exit 3 and no fallback path. There is no escape hatch.
 
-```json
-{
-  "width": 1280,
-  "height": 720,
-  "fps": 30,
-  "duration_frames": 360,
-  "scenes": [
-    {
-      "html_path": "scenes/01-title.html",
-      "video_bg": "shots/shot-1-saguaro.mp4",
-      "start_frame": 0,
-      "duration_frames": 90
-    }
-  ],
-  "audio_cues": [
-    {
-      "id": "music",
-      "asset_path": "music/track.wav",
-      "start_frame": 0,
-      "duration_frames": 360,
-      "volume": 0.7,
-      "pan": 0.0,
-      "fade_in_frames": 6,
-      "fade_out_frames": 24,
-      "duck_targets": [],
-      "duck_db": 0.0
-    }
-  ]
-}
+If a render call fails:
+1. Read the error message — it points at the exact fix.
+2. Fix the upstream stage (storyboard plan, captions, scene HTML).
+3. Re-run `wavelet render commercial.html`.
+
+If you ever feel tempted to write a JSON composition file, STOP.
+That's the wrong escape hatch. Diagnose the upstream sticky step and
+fix THAT instead. Every adversarial eval that ran into hand-authored
+JSON ended in pipeline-gate failure — the JSON path bypasses every
+lint rule, contrast measurement, and discipline check.
+
+> Historical note: prior versions of wavelet accepted `comp.json` as a
+> parallel render input with a 7-property motion enum. Both have been
+> retired. Animation lives in standard CSS now (Stylo's `@keyframes` +
+> `transition`); composition lives in `commercial.html`.
+
+## Step 7.9 — pre-flight: wavelet lint
+
+Before declaring the run complete and writing `notes.md`, the agent
+MUST invoke lint with **`--mp4`** pointing at the rendered final cut:
+
+```bash
+wavelet lint commercial.html --platform <p> --mp4 commercial.mp4
 ```
 
-Required fields per scene: `html_path`, `start_frame`, `duration_frames`.
-Optional: `video_bg`, `transition_in`. Frame math: at 30fps,
-`duration_frames = 30 * secs`. Scene durations should sum to the total —
-don't leave gaps.
+The `--mp4` flag is **REQUIRED** — without it, the `wavelet_lint_passes`
+pipeline gate refuses to mark the compose stage complete and emits
+`missing_mp4_postrender_lint`. The flag enables the post-render
+contrast pass, which samples the actual composited MP4 frames (HTML
+overlay + Veo video underneath) and runs WCAG-AA contrast checks
+against those pixels. It's the only stage that sees the same pixels
+the viewer will. An HTML-only lint cannot satisfy the gate.
 
-Reference: `packages/wavelet/examples/arizona/comp.json` is a working
-multi-scene composition.
+`<p>` is `tiktok` for TikTok deliverables, `instagram_reels` for
+Meta, `youtube_shorts` for Shorts, etc. The lint runs all rules
+(safe-zone, glyph-clip, layout-axis-coherence, color-grade-coherence,
+text-readability, audio-presence, static-frame-trim) and exits
+non-zero if any Error-severity finding lands.
 
-> Historical note: a `motion: [...]` array used to live on each scene
-> as a 7-property enum (`x, y, scale, rotate, opacity, width, height`).
-> That layer is **retired** — animation lives in standard CSS now via
-> Stylo's `@keyframes` + `transition` engine. Don't reach for it.
+If lint reports errors, remediate then re-run:
+
+- **safe-zone** — lift the offending element above the platform's
+  chrome margin (bottom 320 px on TikTok 1080×1920, etc.).
+- **glyph-clip** — revise the scene's CSS (padding, overflow,
+  font-size) so text doesn't escape its container or the canvas.
+- **text-readability** — bump cap-height to ≥ 56 px at 1080×1920
+  (or the scaled equivalent for 9:16 deliverables); check contrast
+  ratio ≥ 4.5:1 against the underlying video frame.
+- **audio-presence** — confirm an `<audio>` ref is present in
+  `commercial.html` AND the referenced music file exists on disk.
+- **color-grade-coherence** — rewrite the storyboard prompts to
+  share the cinematography preamble verbatim (see the
+  Shot-prompt-prefix section). The fix is upstream, at the
+  storyboard stage — not in the composition.
+
+After fixing, re-run `wavelet lint` and confirm exit 0. Only then
+write `notes.md` and call the run done.
+
+If lint exit is non-zero and the agent ships anyway, the rubric
+WILL catch the visible failures (off-screen text, color drift,
+microscopic copy, missing audio) and the run fails. The lint exists
+specifically to prevent paying for re-rolls.
+
+The 005 v5 run did NOT invoke `wavelet lint` even once — every
+layout problem in the rendered MP4 was something the lint would
+have caught at the compose stage. Don't be that run.
 
 ## Step 8 — render and (optionally) re-mux
 
@@ -1380,6 +2492,114 @@ wavelet c2pa sign commercial.astra.mp4 --comp index.html
 
 Astra's re-encode invalidates the original C2PA hash, so re-signing
 is mandatory.
+
+## Step 8.7 — UGC post-realism pass (when register == UGC)
+
+For UGC-register spots only. Skip on cinematic / luxury / editorial
+output — they're the wrong direction for those. The pass is "the
+final 10%" the community converges on (aiimagetovideo.pro, reelmind,
+renderio — 2025-2026): even with a Nano-Banana-3 ref + the "A selfie
+video of" scaffold + UGC negatives, Veo's output is *still* too
+clean. Real phone footage carries sensor noise, lens optics, and
+TikTok-codec artifacts; AI gen carries none of them. Layering them
+in post moves the clip out of uncanny valley.
+
+The minimum effective stack — one ffmpeg call:
+
+```bash
+# Adds varied film grain, slight barrel + chromatic aberration,
+# re-encodes at TikTok-ish bitrate (~7 Mbps for 1080×1920).
+# Tune the `noise` and `lenscorrection` strengths per shot — grain too
+# heavy reads as a filter, too light reads as nothing.
+ffmpeg -y -i commercial.mp4 \
+  -vf "noise=alls=8:allf=t,\
+       lenscorrection=k1=-0.02:k2=-0.01,\
+       chromashift=cbh=1:crv=-1,\
+       format=yuv420p" \
+  -c:v libx264 -preset slow -b:v 7M -maxrate 8M -bufsize 16M \
+  -c:a copy commercial.ugc.mp4
+```
+
+Notes on each filter:
+
+- `noise=alls=8:allf=t` — temporal noise, varied per-frame. The `f=t`
+  flag is load-bearing; static (per-pixel) noise reads as a filter.
+- `lenscorrection=k1=-0.02:k2=-0.01` — subtle barrel distortion;
+  iPhone wide-angle selfie lenses produce ~k1=-0.04, the smaller
+  number reads as "phone" without becoming GoPro-fisheye.
+- `chromashift=cbh=1:crv=-1` — 1px chromatic aberration; ~0.5px is
+  ideal but ffmpeg's filter takes integer pixels.
+- `-b:v 7M` — TikTok's effective bitrate ceiling on uploads is
+  ~6-8 Mbps. Targeting it here kills the too-clean codec signature
+  before the platform's encoder gets to do it for you.
+
+Run **after** `wavelet render` + final mux, **before** C2PA signing
+(C2PA's hash binds the file you intend to ship — sign the post-pass
+output, not the pre-pass one). If using Topaz Astra, run Astra
+**before** this step; Astra's job is upscaling, this pass's job is
+adding the right kind of dirt back in.
+
+A heavier stack (FilmConvert + Magic Bullet Looks via Resolve) is
+the manual professional finish, but the ffmpeg one-liner above is the
+agent-runnable floor that converts an obviously-AI talking-head into
+something that survives a first-pass viewer check.
+
+## Step 8.8 — real-product-label compositing (when the SKU label matters)
+
+If the brief names a real branded product with a wordmark or label
+that viewers will recognize (skincare, food/bev, electronics with
+visible badges), **never trust Veo to render the label**. Even
+Veo 3.1's Ingredients-to-Video workflow (3 reference images, with
+the product image first in the order) hallucinates letterforms
+frame-to-frame, and the standard advice from Google's own ref-image
+docs is to "use the generated clip as motion material and overlay
+official text in editing."
+
+**Read the product specifics from brandwork before prompting.** The
+agent's instinct is to fill product details from imagination
+("pastel pink-and-cream squeeze tube of moisturizer"); the brandwork
+output usually has the real ones. Specifically: `brandwork brief
+<domain> --json` returns `brand.palette` (hex array) +
+`brand.descriptors_json.description` which usually includes the
+product packaging form factor + dominant colors. For Bubble it
+returns `["#241c21", "#040404"]` palette with "turquoise jar with
+orange pump cap" findable via `brand fetch` social images.
+Translate those values verbatim into the Veo prompt's product slot —
+do NOT substitute your own guess. The 010 v3 eval shipped a cream
+squeeze tube for a brand whose actual product is a turquoise jar
+with an orange pump cap. That's a brand-research-to-prompt
+propagation failure, not a Veo failure.
+
+The agent-runnable approach:
+
+1. Generate the shot with Veo Ingredients-to-Video — front-load the
+   preservation clause: *"Using the reference image as the identity
+   anchor, create a 4-second video of [SUBJECT holding the product].
+   Preserve the bottle shape, cap color, and label region. Do not
+   change the logo, label, bottle shape, or cap color."*
+2. Accept that the label TEXT will still drift. The bottle shape +
+   color usually survives; the wordmark glyphs do not.
+3. In post (After Effects with mocha, DaVinci Fusion's Planar
+   Tracker, or `wavelet shot fix --intent "replace label region
+   with reference"` for a Kontext-Max surgical pass), planar-track
+   the label region and comp the real product PNG / SVG wordmark
+   back on top.
+4. The real wordmark URL comes from `brandwork brand.product
+   domain=<x> query=<sku>`. Do NOT text-render the brand name in
+   the brand's display face as a substitute — that reads as
+   deliberate typography, not as a real label.
+
+Gotcha: this only works if the label region is reasonably stable
+between frames. On rapid-motion clips (subject waving the bottle
+around) the tracker loses lock and you need to either (a) re-roll
+the shot with calmer motion, or (b) limit the label-track to the
+sub-window of the shot where motion is stable.
+
+For brand-label fidelity over animation, use Veo `i2v` with a
+pre-rendered first/last frame containing the correct label (see
+"Text baked into Veo clips" near the end of this skill) — Veo
+interpolates between known-good label states rather than
+hallucinating from scratch.
 
 ## Verifying the result
 
@@ -1446,9 +2666,13 @@ requests where estimate exceeds the budget.
   specifics, composition, camera type. Not "a desert" — "a single
   saguaro silhouetted against a flame-orange sunset, mountains on the
   horizon, wide low-angle, cinematic".
-- **Black frames in render:** A `video_bg` path didn't resolve. Check
-  paths in `comp.json` (or your wiring) are relative to the manifest's
-  directory.
+- **Black frames in render:** Your inline `<video src="...">` path
+  in the scene HTML didn't resolve. Scene-HTML paths are relative to
+  the scene file itself (typically `../shots/shot-N.mp4` since scenes
+  live in `scenes/` and shots in `shots/`). If you wrote
+  `data-video-bg` on a `<section>` instead of an inline `<video>`,
+  the clip is orphaned — `data-video-bg` is silently dropped by the
+  renderer; only inline `<video>` inside scene HTML renders.
 - **Audio out of sync:** Music duration must equal total render
   duration. Generate music to match (`--duration <total_secs>`) or use
   `<audio data-spans="all">` to bind to the comp's duration explicitly.
@@ -1483,15 +2707,66 @@ flag that swaps in an alternate provider for that one call. No skill
 narrative covers these — they're escape hatches, not workflows.
 
 Image (`wavelet shot still --backend …`): `google-nano-banana-3` (default).
-Video (`wavelet shot txt2vid --backend …`): `veo` (Google, default).
+Video (`wavelet shot txt2vid --backend …`): **`fal-veo3-fast` (default)** —
+$0.25/s × 4 s = **$1.00 per 4-second clip**. Routes through Fal's queue
+API. Allocate `--max-cost 1.20` (≥ 1.20) on every shot or the cost gate
+refuses with `estimated cost $1.00 exceeds budget $0.X`. Alternates:
+`fal-veo3` (Standard, $0.50/s = $2/4s); Google direct
+`veo` / `veo-fast` / `veo-lite` — these are CURRENTLY QUOTA-EXHAUSTED
+and will fail with HTTP 429 RESOURCE_EXHAUSTED; do not use until quota
+resets.
 Music (`wavelet music gen --backend …`): `elevenlabs` (Merlin+Kobalt-licensed),
 `udio`.
+
+**Budget allocation for an 8-shot 12-second commercial:**
+Default fal-veo3-fast costs $1/clip × 8 clips = $8 of video gen. Add
+music ($0.05) + any TTS ($0.10) + img2vid stills ($0.50) ≈ $9 total.
+A $10 budget fits with margin; a $5 budget does NOT — reduce to 5
+shots or get the budget raised before generating.
 
 Pick an override when (a) the default model is rate-limited or down,
 (b) you need a specific provider's idiosyncratic output (ElevenLabs
 Music's stem isolation, Udio's vocal character), or (c) you're
 benchmarking the defaults against alternates. Otherwise stay on
 defaults — fewer env vars, fewer broker handoffs, lower cost.
+
+## Text baked into Veo clips (wb-lzat)
+
+Full research at `packages/wavelet/docs/veo-text-prompting.md`.
+
+Veo text fidelity is a **known, unresolved limitation** through Veo 3.1.
+The three most actionable findings:
+
+1. **Genre descriptors, not font names.** There is no documented evidence
+   that specific typeface names ("Helvetica Black", "Druk") change Veo
+   output. Use style terms instead: `"bold white sans-serif font"`,
+   `"heavy condensed uppercase lettering"`, `"clean geometric sans"`.
+
+2. **i2v two-frame interpolation is the recommended path for wordmarks.**
+   Pre-render the text frame (CSS overlay screenshot or compositor output),
+   feed it as the end frame to `wavelet shot i2v`. Veo animates the
+   transition without hallucinating letterforms from scratch.
+
+   ```bash
+   wavelet shot i2v --first clean-scene.png --last wordmark-hold.png \
+     --prompt "the word 'NEW BALANCE' assembles from black paint brushstrokes,
+               50mm, warm studio light" \
+     --duration 4
+   ```
+
+3. **For txt2vid text: short, all-caps, flat surface, stable camera.**
+   Keep strings to 1-3 words. Curved surfaces and camera movement cause
+   letterforms to drift frame-to-frame. Use `"head-on framing, no motion
+   blur"` and a dedicated close-up shot when text must be in-shot.
+
+After generation, run `wavelet image ocr` on a sampled frame to grade
+legibility before accepting the clip — the same OCR rule that grades the
+008 eval output.
+
+**Anti-pattern (008 trigger):** Asking Veo to `"bake in the NEW BALANCE
+wordmark forming from paint"` in a single txt2vid call will hallucinate
+letterforms. Use i2v or composite the wordmark as a CSS overlay scene
+instead, and reserve txt2vid for the motion background.
 
 ## When you're done
 
@@ -1506,8 +2781,9 @@ Don't open the file for the user — they'll do that themselves.
 
 ---
 
-*Last updated 2026-05-19 — closes bd issue **wb-ndw7** (child of epic
-wb-e8jh). Verify the "shipping today / coming soon" lists in this doc
-against the current state of `vendor/blitz-paint/src/render/` and
-`packages/wavelet/src/compose/` on every release; this file describes the
-palette as of that date.*
+*Last updated 2026-05-23 — closes bd issue **wb-ndw7** (child of epic
+wb-e8jh); adds Veo text-prompting research (**wb-lzat**). Verify the
+"shipping today / coming soon" lists in this doc against the current
+state of `vendor/blitz-paint/src/render/` and
+`packages/wavelet/src/compose/` on every release; this file describes
+the palette as of that date.*

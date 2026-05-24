@@ -150,7 +150,7 @@ credentials don't leak via the manifest path. Add to taste.
 on-disk tree (dropping the `broker.*` and `path` fields, keeping just
 folders + workbooks with ids and parent pointers) and POSTs to
 `/v1/groups/:id/manifest`. The 3-pass apply algorithm in
-`apps/workbooks-broker/src/lib/manifest.ts` makes this idempotent.
+`packages/broker/worker/src/lib/manifest.ts` makes this idempotent.
 
 `workbook group pull` does the inverse: GET the broker manifest,
 augment with `broker.*` + `path` fields, write to disk, then

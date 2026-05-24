@@ -115,11 +115,11 @@ async function waveletCommercial(ctx, params) {
     return { ok: false, message: `wavelet.commercial: brief not found: ${briefPath}` };
   }
 
-  const agent = params.agent ?? "workhorse";
-  if (!["workhorse", "claude", "codex"].includes(agent)) {
+  const agent = params.agent ?? "worg-agent";
+  if (!["worg-agent", "workhorse", "claude", "codex"].includes(agent)) {
     return {
       ok: false,
-      message: `wavelet.commercial: unknown agent "${agent}" (want: workhorse | claude | codex)`,
+      message: `wavelet.commercial: unknown agent "${agent}" (want: worg-agent | workhorse | claude | codex)`,
     };
   }
   const budgetUsd = typeof params.budget_usd === "number" ? params.budget_usd : DEFAULT_BUDGET_USD;
@@ -142,6 +142,7 @@ async function waveletCommercial(ctx, params) {
   // tidy up siblings of their workdir on exit; keeping the
   // instrumentation inside avoids that.
   const tracePath = path.join(workdir, ".wavelet-trace.jsonl");
+  const adalignTracePath = path.join(workdir, ".adalign-trace.jsonl");
   const shimBinDir = path.join(workdir, ".bin");
 
   try {
@@ -150,8 +151,9 @@ async function waveletCommercial(ctx, params) {
   } catch (err) {
     return { ok: false, message: `wavelet.commercial: failed to create run dir: ${err.message}` };
   }
-  // Touch trace file so the shim can append even if no calls happen.
+  // Touch trace files so the shims can append even if no calls happen.
   await fs.writeFile(tracePath, "", "utf8");
+  await fs.writeFile(adalignTracePath, "", "utf8");
   await fs.writeFile(transcriptPath, "", "utf8");
 
   // Read the brief. In default mode it's also staged at workdir/brief.md
@@ -215,21 +217,71 @@ async function waveletCommercial(ctx, params) {
     }
   }
 
-  // Build the child env. wb-uory.12 attempted a HOME-sandbox here to
-  // isolate config-cascade access to ~/.wavelet/config.toml across eval
-  // runs; that broke every agent CLI's auth (claude reads ~/.claude.json,
-  // workhorse reads ~/.config/workbooks/auth.json, codex reads ~/.codex/,
-  // etc.) and the symlink-passthrough whack-a-mole wasn't tractable.
-  // Reverted to inheriting real HOME. The leak concern stays open — if
-  // we ever ship code that writes HOME-relative state from a wavelet
-  // subprocess, isolate it via a wavelet-side env var (e.g. GAMUT_HOME
-  // overriding cascade.rs::dirs_home), not by sandboxing HOME wholesale.
+  // Locate the real adalign binary. Same lookup order as wavelet: env
+  // override → ~/.local/bin/adalign → PATH. Adalign is optional — the
+  // research-stage gate will fail loudly if the agent doesn't call it,
+  // but if no adalign binary exists at all the shim still gets linked
+  // (calls will exit 127 with a clear error in the trace).
+  let adalignReal = null;
+  if (process.env.ADALIGN_REAL) {
+    try {
+      await fs.access(process.env.ADALIGN_REAL, fs.constants.X_OK);
+      adalignReal = process.env.ADALIGN_REAL;
+    } catch { /* fall through */ }
+  }
+  if (!adalignReal) {
+    const fromPath = await whichSync("adalign");
+    if (fromPath) adalignReal = fromPath;
+  }
+  if (!adalignReal) {
+    const home = process.env.HOME ?? "";
+    const candidate = path.join(home, ".local", "bin", "adalign");
+    try {
+      await fs.access(candidate, fs.constants.X_OK);
+      adalignReal = candidate;
+    } catch { /* fall through */ }
+  }
+
+  // Locate + link the adalign shim. Shim is required (lives in-repo),
+  // but the real binary may be absent (shim will surface the error per
+  // invocation via exit 127 in the trace).
+  const adalignShim = path.resolve(REPO_ROOT, "packages", "wavelet", "evals", "bin", "adalign-traced");
+  try {
+    await fs.access(adalignShim, fs.constants.X_OK);
+  } catch {
+    return {
+      ok: false,
+      message: `wavelet.commercial: adalign-traced shim missing or not executable at ${adalignShim}`,
+    };
+  }
+  const adalignShimLink = path.join(shimBinDir, "adalign");
+  try {
+    await fs.symlink(adalignShim, adalignShimLink);
+  } catch (err) {
+    if (err.code !== "EEXIST") {
+      return { ok: false, message: `wavelet.commercial: failed to link adalign shim: ${err.message}` };
+    }
+  }
+
+  // Build the child env. Per-run config-cascade isolation lives in
+  // WAVELET_HOME below (wb-uory.12). Real HOME is inherited so agent
+  // CLIs (claude, codex, workhorse) keep their auth files intact.
   const childEnv = { ...process.env };
   childEnv.WAVELET_REAL = waveletReal;
   childEnv.WAVELET_TRACE = tracePath;
   childEnv.WAVELET_MAX_COST = String(budgetUsd);
   if (dryRun) childEnv.WAVELET_DRY_RUN = "1";
+  if (adalignReal) childEnv.ADALIGN_REAL = adalignReal;
+  childEnv.ADALIGN_TRACE = adalignTracePath;
   childEnv.PATH = `${shimBinDir}${path.delimiter}${process.env.PATH ?? ""}`;
+  // wb-uory.12 — surgical config-cascade isolation. WAVELET_HOME points
+  // at an empty per-run dir, so wavelet's cascade.rs::dirs_home picks
+  // it up instead of $HOME for resolving ~/.wavelet/config.toml. Global
+  // HOME stays untouched, so agent-CLIs (claude/codex/workhorse) still
+  // see their normal auth files.
+  const waveletHome = path.join(runDir, ".wavelet-home");
+  await fs.mkdir(waveletHome, { recursive: true });
+  childEnv.WAVELET_HOME = waveletHome;
   // Source ~/.config/wavelet/env first (if present), then let real env
   // vars override — so a user can pin a fallback FAL_KEY in the file
   // but still hot-swap it via `FAL_KEY=... workbench eval ...`.
@@ -355,6 +407,8 @@ async function waveletCommercial(ctx, params) {
     workdir,
     transcript_path: transcriptPath,
     trace_path: tracePath,
+    adalign_trace_path: adalignTracePath,
+    adalign_real: adalignReal,
     commercial_mp4: commercialMp4,
     final_validation_error: lastValidationError,
     env: redactEnv(childEnv),
@@ -364,6 +418,7 @@ async function waveletCommercial(ctx, params) {
   ctx.waveletRunDir = runDir;
   ctx.waveletWorkdir = workdir;
   ctx.waveletTrace = tracePath;
+  ctx.waveletAdalignTrace = adalignTracePath;
   ctx.waveletTranscript = transcriptPath;
   ctx.waveletCommercialMp4 = commercialMp4;
 
@@ -389,6 +444,7 @@ async function waveletCommercial(ctx, params) {
     run_dir: runDir,
     workdir,
     trace: tracePath,
+    adalign_trace: adalignTracePath,
     transcript_path: transcriptPath,
     transcript_tail: lastTranscriptTail,
     commercial_mp4: commercialMp4,
@@ -408,7 +464,51 @@ async function waveletCommercial(ctx, params) {
 async function runAgentOnce({ agent, workdir, childEnv, timeoutMs, promptContents, transcriptPath }) {
   let cmd;
   let args;
-  if (agent === "workhorse") {
+  if (agent === "worg-agent") {
+    // wb-ki6b.8 — drive the Rust worg-agent runtime against the
+    // wavelet-director.org agent definition. Same binary used for
+    // local CLI runs; eval runner just invokes it as a subprocess.
+    // Looks for the binary at WORG_AGENT_REAL first (built-from-source
+    // path), then falls back to "worg-agent" on PATH.
+    const worgBin = childEnv.WORG_AGENT_REAL ?? (await whichSync("worg-agent"));
+    if (!worgBin) {
+      return {
+        exitCode: -1,
+        timedOut: false,
+        durationMs: 0,
+        transcriptTail:
+          "[spawn error] worg-agent binary not found (set WORG_AGENT_REAL or build with `cargo build -p worg-agent --bin worg-agent`)\n",
+      };
+    }
+    const agentOrg =
+      childEnv.WORG_AGENT_DEFINITION ??
+      // Default to the wavelet-director definition shipped in the
+      // monorepo. Eval runs that want a different agent set
+      // WORG_AGENT_DEFINITION explicitly.
+      path.resolve(
+        path.dirname(new URL(import.meta.url).pathname),
+        "..",
+        "..",
+        "..",
+        "..",
+        "..",
+        "..",
+        "..",
+        "worg",
+        "proposed",
+        "agents",
+        "wavelet-director.org",
+      );
+    cmd = worgBin;
+    args = [
+      "run",
+      "--agent", agentOrg,
+      "--workdir", workdir,
+      "--prompt", promptContents,
+      "--transcript", path.join(workdir, "worg-transcript.jsonl"),
+      "--json",
+    ];
+  } else if (agent === "workhorse") {
     const bin = resolveWorkbookBin();
     const chatArgs = [
       "chat",
@@ -636,7 +736,19 @@ function redactEnv(env) {
   for (const [k, v] of Object.entries(env)) {
     if (FORWARDED_API_KEYS.includes(k) && typeof v === "string" && v.length > 0) {
       out[k] = `${v.slice(0, 4)}…`;
-    } else if (k === "WAVELET_REAL" || k === "WAVELET_TRACE" || k === "WAVELET_MAX_COST" || k === "WAVELET_DRY_RUN" || k === "PATH") {
+    } else if (
+      k === "WAVELET_REAL" ||
+      k === "WAVELET_TRACE" ||
+      k === "WAVELET_MAX_COST" ||
+      k === "WAVELET_DRY_RUN" ||
+      k === "WAVELET_HOME" ||
+      k === "WORG_AGENT_REAL" ||
+      k === "WORG_AGENT_DEFINITION" ||
+      k === "WORG_AGENT_VIDEO_MODEL" ||
+      k === "ADALIGN_REAL" ||
+      k === "ADALIGN_TRACE" ||
+      k === "PATH"
+    ) {
       out[k] = v;
     }
   }

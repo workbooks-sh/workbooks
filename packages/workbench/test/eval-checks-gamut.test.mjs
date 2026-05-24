@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
 
-import { gamutChecks } from "../src/eval/checks/wavelet.mjs";
+import { waveletChecks } from "../src/eval/checks/wavelet.mjs";
 
 let pass = 0, fail = 0, skipped = 0;
 function check(name, ok, detail) {
@@ -86,7 +86,7 @@ await (async () => {
     return;
   }
 
-  const r1 = await gamutChecks["wavelet.video_renders"]({}, {
+  const r1 = await waveletChecks["wavelet.video_renders"]({}, {
     path: mp4,
     duration_secs: 1,
     duration_tolerance_secs: 0.3,
@@ -96,11 +96,11 @@ await (async () => {
   });
   check("video_renders: success", r1.ok, r1.message);
 
-  const r2 = await gamutChecks["wavelet.video_renders"]({}, { path: path.join(tmp, "no-such.mp4") });
+  const r2 = await waveletChecks["wavelet.video_renders"]({}, { path: path.join(tmp, "no-such.mp4") });
   check("video_renders: missing file fails with clear msg",
     !r2.ok && /file not found/.test(r2.message), r2.message);
 
-  const r3 = await gamutChecks["wavelet.video_renders"]({}, {
+  const r3 = await waveletChecks["wavelet.video_renders"]({}, {
     path: mp4, duration_secs: 99, duration_tolerance_secs: 0.5,
   });
   check("video_renders: wrong duration fails with actual",
@@ -122,15 +122,15 @@ await (async () => {
     "not json at all", // malformed, skipped
   ].join("\n"));
 
-  const r1 = await gamutChecks["wavelet.cost_below"]({}, { trace, max_usd: 0.50 });
+  const r1 = await waveletChecks["wavelet.cost_below"]({}, { trace, max_usd: 0.50 });
   check("cost_below: under budget passes", r1.ok, r1.message);
 
-  const r2 = await gamutChecks["wavelet.cost_below"]({}, { trace, max_usd: 0.20 });
+  const r2 = await waveletChecks["wavelet.cost_below"]({}, { trace, max_usd: 0.20 });
   check("cost_below: over budget fails with total + top3",
     !r2.ok && /total \$0\.3000/.test(r2.message) && /video\.gen/.test(r2.detail?.top3 ?? ""),
     { msg: r2.message, top3: r2.detail?.top3 });
 
-  const r3 = await gamutChecks["wavelet.cost_below"]({}, { trace: path.join(tmp, "nope.jsonl"), max_usd: 1 });
+  const r3 = await waveletChecks["wavelet.cost_below"]({}, { trace: path.join(tmp, "nope.jsonl"), max_usd: 1 });
   check("cost_below: missing trace fails", !r3.ok && /not readable/.test(r3.message), r3.message);
 })();
 
@@ -152,7 +152,7 @@ await (async () => {
   const stubDirGood = await makeTmp("stub-good");
   await makeStubBin(stubDirGood, "wavelet", goodOut, 0);
   const r1 = await withPathPrefix(stubDirGood, () =>
-    gamutChecks["wavelet.workflow_complete"]({}, { workdir: tmp, pipeline: "commercial" })
+    waveletChecks["wavelet.workflow_complete"]({}, { workdir: tmp, pipeline: "commercial" })
   );
   check("workflow_complete: all complete passes", r1.ok, r1.message);
 
@@ -168,7 +168,7 @@ await (async () => {
   const stubDirBad = await makeTmp("stub-bad");
   await makeStubBin(stubDirBad, "wavelet", badOut, 0);
   const r2 = await withPathPrefix(stubDirBad, () =>
-    gamutChecks["wavelet.workflow_complete"]({}, { workdir: tmp, pipeline: "commercial" })
+    waveletChecks["wavelet.workflow_complete"]({}, { workdir: tmp, pipeline: "commercial" })
   );
   check("workflow_complete: pending stage fails with stage name",
     !r2.ok && /render/.test(r2.message) && /pending/.test(r2.message), r2.message);
@@ -188,14 +188,14 @@ await (async () => {
   await fs.writeFile(path.join(scenes, "02.html"),
     `<!doctype html><style>.y { mix-blend-mode: overlay; }</style>`);
 
-  const r1 = await gamutChecks["wavelet.palette_uses"]({}, {
+  const r1 = await waveletChecks["wavelet.palette_uses"]({}, {
     workdir: tmp,
     scenes_glob: "scenes/*.html",
     required: ["mix-blend-mode", "clip-path", "@keyframes", "<video"],
   });
   check("palette_uses: all features present", r1.ok, r1.message);
 
-  const r2 = await gamutChecks["wavelet.palette_uses"]({}, {
+  const r2 = await waveletChecks["wavelet.palette_uses"]({}, {
     workdir: tmp,
     scenes_glob: "scenes/*.html",
     required: ["mix-blend-mode", "filter: url(#noise)"],
@@ -203,7 +203,7 @@ await (async () => {
   check("palette_uses: missing feature fails with which is missing",
     !r2.ok && /filter: url\(#noise\)/.test(r2.message), r2.message);
 
-  const r3 = await gamutChecks["wavelet.palette_uses"]({}, {
+  const r3 = await waveletChecks["wavelet.palette_uses"]({}, {
     workdir: tmp,
     scenes_glob: "no-such/*.html",
     required: ["x"],
@@ -232,13 +232,13 @@ await (async () => {
   // ffmpeg "color=red" → roughly #ff0000 after yuv420p round-trip.
   // Use a generous tolerance since chroma subsampling drifts the
   // exact bytes.
-  const r1 = await gamutChecks["wavelet.frame_probe"]({}, {
+  const r1 = await waveletChecks["wavelet.frame_probe"]({}, {
     mp4, t_secs: 0.1, x: 32, y: 32,
     expect: { hex_close_to: "#ff0000", tolerance: 40 },
   });
   check("frame_probe: red mp4 reads red", r1.ok, r1.message);
 
-  const r2 = await gamutChecks["wavelet.frame_probe"]({}, {
+  const r2 = await waveletChecks["wavelet.frame_probe"]({}, {
     mp4, t_secs: 0.1, x: 32, y: 32,
     expect: { hex_close_to: "#00ff00", tolerance: 10 },
   });
@@ -258,7 +258,7 @@ await (async () => {
   const stubDirOk = await makeTmp("stub-c2-ok");
   await makeStubBin(stubDirOk, "wavelet", "verified ok\n", 0);
   const r1 = await withPathPrefix(stubDirOk, () =>
-    gamutChecks["wavelet.c2pa_verifies"]({}, { path: mp4 })
+    waveletChecks["wavelet.c2pa_verifies"]({}, { path: mp4 })
   );
   check("c2pa_verifies: exit 0 passes", r1.ok, r1.message);
 
@@ -271,13 +271,13 @@ echo "manifest invalid: leaf cert expired" 1>&2
 exit 2
 `, { mode: 0o755 });
   const r2 = await withPathPrefix(stubDirBad, () =>
-    gamutChecks["wavelet.c2pa_verifies"]({}, { path: mp4 })
+    waveletChecks["wavelet.c2pa_verifies"]({}, { path: mp4 })
   );
   check("c2pa_verifies: non-zero exit fails with stderr",
     !r2.ok && /exited 2/.test(r2.message) && /manifest invalid/.test(r2.detail?.stderr ?? ""),
     { msg: r2.message, stderr: r2.detail?.stderr });
 
-  const r3 = await gamutChecks["wavelet.c2pa_verifies"]({}, { path: path.join(tmp, "no-file.mp4") });
+  const r3 = await waveletChecks["wavelet.c2pa_verifies"]({}, { path: path.join(tmp, "no-file.mp4") });
   check("c2pa_verifies: missing file fails before exec",
     !r3.ok && /file not found/.test(r3.message), r3.message);
 })();

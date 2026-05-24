@@ -377,10 +377,22 @@ function makeLazySubstrate(spec) {
 
 function needsSubstrate(checks) {
   if (!Array.isArray(checks)) return false;
-  return checks.some((c) =>
-    typeof c?.kind === "string" &&
-    (c.kind.startsWith("substrate.") || c.kind.startsWith("workbook.")),
-  );
+  return checks.some(checkTouchesSubstrate);
+}
+
+function checkTouchesSubstrate(c) {
+  if (!c || typeof c !== "object") return false;
+  if (typeof c.kind === "string") {
+    if (c.kind.startsWith("substrate.") || c.kind.startsWith("workbook.")) return true;
+    // session.poll_until wraps its real assertion in a `predicate` field.
+    // Without this, polling for substrate state slips past needsSubstrate
+    // → no pre-clone → workdir is null → BEAM runtime can't register the
+    // substrate_push tool, and the agent reports "git push isn't available".
+    if (c.kind === "session.poll_until" && c.predicate) {
+      return checkTouchesSubstrate(c.predicate);
+    }
+  }
+  return false;
 }
 
 function sleep(ms, abortSignal) {
@@ -402,7 +414,7 @@ function driveChat({ agent, prompt, sessionId, timeoutMs, abortSignal, runtime, 
 
     // wb-ht4q.12.15 — when the spec routes to the BEAM runtime, swap
     // the spawn target from `workbook chat` to `mix wb.agent.chat` in
-    // apps/workbooks-runtime/. Protocol is identical (NDJSON
+    // apps/studio/workhorse/. Protocol is identical (NDJSON
     // chat.open / message_delta / tool_start / tool_result / chat.close)
     // — only the spawn target changes.
     const isBeam = (runtime ?? "linux-sandbox") === "beam";

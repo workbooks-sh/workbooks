@@ -37,6 +37,28 @@ function check(name, ok, detail) {
   else fail++;
 }
 
+// Non-trivial .org content: multibyte chars, PROPERTIES drawer, LOGBOOK drawer,
+// embedded quotes/backslash, trailing whitespace on a continuation line. Used
+// to verify .org files round-trip byte-identically through createSourceBundle
+// → embedBundle → extractBundle → runUnbundle.
+const ORG_FIXTURE = [
+  "* TODO Plan with non-ascii — café résumé 日本語 🚀",
+  ":PROPERTIES:",
+  ":ID:       plan-001",
+  ":CREATED:  [2026-05-24 Sun 10:30]",
+  ":END:",
+  ":LOGBOOK:",
+  "- State \"TODO\"       from              [2026-05-24 Sun 10:30]",
+  "- Note taken on [2026-05-24 Sun 10:45] \\\\",
+  "  initial scope: byte-identical round-trip",
+  ":END:",
+  "",
+  "** Subtask",
+  "   Body with embedded \"quotes\" and a \\backslash.",
+  "",
+].join("\n");
+const ORG_FIXTURE_BUF = Buffer.from(ORG_FIXTURE, "utf8");
+
 async function makeTempProject() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "wb-source-"));
   await fs.mkdir(path.join(root, "src"), { recursive: true });
@@ -47,6 +69,7 @@ async function makeTempProject() {
   await fs.writeFile(path.join(root, "src", "index.html"), "<!doctype html><html></html>");
   await fs.writeFile(path.join(root, "src", "main.js"), "console.log(1);\n");
   await fs.writeFile(path.join(root, "src", "styles.css"), ".x { color: red }\n");
+  await fs.writeFile(path.join(root, "src", "plan.org"), ORG_FIXTURE_BUF);
   await fs.writeFile(path.join(root, "node_modules", "left-pad", "index.js"), "module.exports = (s,n)=>s;\n");
   await fs.writeFile(path.join(root, ".git", "HEAD"), "ref: refs/heads/main\n");
   await fs.writeFile(path.join(root, "secret", "creds.json"), '{"key":"redacted"}');
@@ -72,6 +95,16 @@ async function main() {
   check(
     "default bundle: includes src/main.js",
     paths.has("src/main.js"),
+  );
+  check(
+    "default bundle: includes src/plan.org",
+    paths.has("src/plan.org"),
+  );
+  const planEntry = decoded.files.find((f) => f.path === "src/plan.org");
+  check(
+    ".org file: manifest bytes match on-disk bytes (wb-4vhr.18)",
+    planEntry?.content != null &&
+      Buffer.from(planEntry.content, "base64").equals(ORG_FIXTURE_BUF),
   );
   check(
     "default bundle: skips node_modules/",
@@ -212,6 +245,13 @@ async function main() {
   check(
     "unbundle: src/main.js roundtrips byte-equal",
     extractedMain === "console.log(1);\n",
+  );
+  // wb-4vhr.18 — .org files MUST round-trip byte-identically.
+  // Read as Buffer (not utf8 string) to catch any encoding drift.
+  const extractedOrg = await fs.readFile(path.join(outDir, "src", "plan.org"));
+  check(
+    "unbundle: src/plan.org roundtrips byte-equal (wb-4vhr.18)",
+    extractedOrg.equals(ORG_FIXTURE_BUF),
   );
   // node_modules / .git / .env should NOT exist in the unbundle output
   await assertMissing(path.join(outDir, "node_modules"), "node_modules");

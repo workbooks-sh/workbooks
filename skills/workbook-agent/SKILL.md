@@ -168,7 +168,7 @@ export default function mount(target, props, emit) {
 
 1. Agent calls `open_stage({filepath, component? = "stage"})` once. Runner stores the registration and emits an initial stage event (empty content if file doesn't exist yet).
 2. Agent uses normal `write` / `edit` / `bash` tools. The runner's `tool_execution_end` hook checks the touched path against the registered stage; if it matches, the runner reads the new file content and emits a `block` event `{kind:"custom", name:<component>, props:{filepath, content}}`.
-3. Studio's `latestStageProps` derived state (in `apps/studio/src/routes/(app)/chat/+page.svelte`) picks up the latest event and posts props to the stage iframe via postMessage.
+3. Studio's `latestStageProps` derived state (in `apps/studio/frontend/src/routes/(app)/chat/+page.svelte`) picks up the latest event and posts props to the stage iframe via postMessage.
 4. The component's `(target, props, emit) => unmount` factory renders `props.content` however it wants — typically markdown.
 
 The `kind:"custom"` + `name:<component>` block shape is the wire protocol; agents rarely emit it by hand because `open_stage` + natural file edits cover the common case. Use direct `render({block:{kind:"custom", ...}})` only for cases where there's no underlying file (live charts, computed widgets).
@@ -242,8 +242,8 @@ hosts arbitrary components; you don't need spa for "agent + custom UI".
 | run `workbook init / dev / build / unbundle / publish`| [_shared/references/cli.md](../_shared/references/cli.md)       |
 | see the full `agent` block validator                  | `packages/workbooks/packages/workbook-cli/src/util/config.mjs`    |
 | see what publish sends to the broker                  | `packages/workbooks/packages/workbook-cli/src/commands/publish.mjs` |
-| see the agents schema                                 | `apps/workbooks-broker/migrations/0016_agents.sql`              |
-| see folder scoping on group shares                    | `apps/workbooks-broker/migrations/0027_agent_group_share_folders.sql` |
+| see the agents schema                                 | `packages/broker/worker/migrations/0016_agents.sql`              |
+| see folder scoping on group shares                    | `packages/broker/worker/migrations/0027_agent_group_share_folders.sql` |
 
 ## Source of truth
 

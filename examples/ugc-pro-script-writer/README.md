@@ -13,7 +13,7 @@ A `type:"agent"` workbook. Unlike an `spa` (a static interface the reader intera
 
 1. Rewrite `src/system-prompt.md` — who the agent is, what it expects in messages, what it writes.
 2. Edit `src/components/stage.js` — render whatever shape the agent's outputs take.
-3. Add tools the agent should call. Bare names map to pi-coding-agent built-ins; `composio:<toolkit>` binds an entire Composio toolkit (requires a Studio → Integrations connection).
+3. Add tools the agent should call. Bare names map to pi-coding-agent built-ins; `oauth:<toolkit>` binds a broker-managed OAuth toolkit (requires a Studio → Integrations connection).
 4. Declare folders the agent reads/writes via `agent.permissions: { write_folder, context_folder }` once you've created the group.
 
 ## Build and attach to a group

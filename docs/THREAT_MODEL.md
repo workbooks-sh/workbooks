@@ -277,7 +277,7 @@ PRs that don't touch sealed-workbook code can omit. PRs that touch the broker, t
 
 End-to-end test that exercises every C1 row in §4.1 except OIDC validity (which we trust WorkOS for):
 
-- **`apps/workbooks-broker/test/e2e-c1.test.mjs`** (`npm run test:e2e`)
+- **`packages/broker/worker/test/e2e-c1.test.mjs`** (`npm run test:e2e`)
   - Seeds two synthetic sessions (alice in policy, bob out).
   - Author registers workbook, wraps DEK at broker.
   - Alice POST `/key` → 200 + `sealed_dek`; HPKE-opens the sealed_dek and asserts byte-equal to the original DEK (cross-impl wire-shape pin).

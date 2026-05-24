@@ -51,7 +51,7 @@ Every workbook declares its shape and dependencies in
 | Field | Type | Description |
 |---|---|---|
 | `databases` | `{ [slot]: { kind: "supabase" \| "convex" \| "turso" } }` | Browser-safe DB slots the workbook needs; resolved per-recipient at runtime |
-| `integrations` | `string[]` | Composio toolkit slugs the workbook calls (`gmail`, `github`, …) |
+| `integrations` | `string[]` | OAuth toolkit slugs the workbook calls (`gmail`, `github`, …) |
 | `tools` | `{ [name]: { description, input } }` | MCP-style tool declarations exposed to agents |
 | `connect` | `{ [key]: { … } }` | Env-style declarations resolved via the host's secret store |
 | `host` | `{ name?, url?, splashColor?, logoSvg? }` | Optional host pointer — see [Host extensibility](#host-extensibility) |
@@ -116,7 +116,7 @@ floater.add(item)          // surface a "needs attention" item to the host
 floater.remove(id)
 floater.dismiss(id)
 
-connections.execute(toolkit, action, args)  // Composio-aggregated integrations
+connections.execute(toolkit, action, args)  // broker-managed OAuth integrations
 
 rpc.register(toolName, handler)        // expose a local tool handler
 rpc.call(toolName, args)                // call cross-workbook (or local)

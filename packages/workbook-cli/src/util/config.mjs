@@ -444,7 +444,7 @@ export async function loadConfig(projectDir) {
     // connect each via Studio → Integrations before the hosted viewer
     // executes any tool calls. Authors discover what's available with
     // `workbook connections list`. For agent workbooks, these can also
-    // be expressed via tools: ["composio:<toolkit>"]; the integrations
+    // be expressed via tools: ["oauth:<toolkit>"]; the integrations
     // array is the canonical surface for non-agent workbooks.
     integrations: extractIntegrationsList(cfg.integrations),
     // Tools the workbook advertises to MCP clients. Same shape as

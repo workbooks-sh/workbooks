@@ -30,7 +30,7 @@ sandbox to function. The current taxonomy (extensible):
 | Family             | Examples                                                                                  | Today's storage                                  |
 | ------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | LLM provider       | OpenRouter, Anthropic, OpenAI, Google, LiteLLM                                            | Studio Integrations (user `private` scope), grow |
-| OAuth toolkit      | Composio toolkits: gmail, drive, slack, github, brave_search, exa, …                     | `connections` rows (private / N groups / org)    |
+| OAuth toolkit      | Broker-managed OAuth: gmail, drive, slack, github, brave_search, exa, …                  | `oauth_connections` rows (private / N groups / org) |
 | Env-var secret     | Custom API keys spliced into outbound HTTP (`Authorization: Bearer …`, `?api_key=…`)      | `group_env_vars` (KEK-wrapped, domain-allowlisted)|
 | Database           | Postgres / D1 / Convex / SQLite-the-broker-hosts                                          | `database_connections` (per group)              |
 | Identity / OAuth   | WorkOS sign-in, Sign-in-with-ChatGPT, GitHub via WorkOS Pipes                             | Session + Pipes config                           |
@@ -141,8 +141,9 @@ attempts to use it fail gracefully.
 
 **Inject rules** are only meaningful for `env:*` and custom HTTP-style
 capabilities. For `llm:*` the dispatch rule is implicit (provider's
-canonical endpoint + auth scheme); same for `oauth:*` (Composio's
-dispatch). The optional `inject`/`domains` are explicit overrides for
+canonical endpoint + auth scheme); same for `oauth:*` (broker
+dispatch via the per-provider OAuth client). The optional
+`inject`/`domains` are explicit overrides for
 the rare case the author needs to point at a non-canonical endpoint.
 
 ---
@@ -172,7 +173,7 @@ GET /v1/capabilities/catalog
     {
       "slug": "oauth:google_drive",
       "family": "oauth",
-      "name": "Google Drive (via Composio)",
+      "name": "Google Drive",
       "scopes_available": ["user", "group"],
       "docs_url": "/skills/capability-oauth-google-drive/SKILL.md",
       "actions_catalog": "/v1/capabilities/oauth/google_drive/actions"
@@ -238,7 +239,7 @@ Content-Type: application/json
       "slug": "oauth:google_drive",
       "scope": "user",
       "reason": "no_private_connection",
-      "wire_url": "https://studio.workbooks.sh/integrations?install=composio:google_drive&scope=user"
+      "wire_url": "https://studio.workbooks.sh/integrations?install=oauth:google_drive&scope=user"
     }
   ],
   "audit_id": "<rid>"   // logged at broker; tied to next publish if any
@@ -478,7 +479,7 @@ Three legacy mechanisms collapse into the resolver:
    `group_env_vars` rows are read by the resolver under the
    `env:<NAME>` slug.
 
-2. **`/v1/connections` (Composio toolkits) with `scope: private | N
+2. **`/v1/connections` (OAuth toolkits) with `scope: private | N
    groups | team`** → becomes the `oauth:*` family in the catalog,
    resolved through the same endpoint. The existing private/groups/team
    scope storage stays — just exposed through a unified slug.
@@ -579,8 +580,8 @@ intervention.
   - `packages/workbooks/packages/workbook-cli/src/commands/connections.mjs` — the read-only `private / N groups / org` scope viewer we generalize.
   - `packages/workbooks/packages/workbook-cli/src/commands/env.mjs` — group env var CLI; merges into `capabilities` namespace under `env:*`.
   - `packages/workbooks/packages/workbook-cli/src/commands/publish.mjs:237` — `maybeWarnAboutUnmappedDatabases`; collapses into the unified resolve.
-  - `apps/workbooks-broker/migrations/0009_group_env_vars.sql` — the secret storage; stays as-is.
-  - `apps/workbooks-broker/src/routes/agents.ts:61` — `VALID_PROVIDERS` allowlist; reads from the catalog post-Phase-1.
+  - `packages/broker/worker/migrations/0009_group_env_vars.sql` — the secret storage; stays as-is.
+  - `packages/broker/worker/src/routes/agents.ts:61` — `VALID_PROVIDERS` allowlist; reads from the catalog post-Phase-1.
 - Three-nouns mental model: this is a property of **Groups** (the
   third noun). Workbooks and Agents declare what they need; Groups
   provide it. See `bd memories workbooks-three-nouns-mental-model`.

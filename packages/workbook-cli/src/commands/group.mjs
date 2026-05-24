@@ -281,7 +281,7 @@ async function createGroup(flags, ctx) {
 
   // Slug rules echo the broker (lowercase, hyphenated, ≤32 chars).
   // We let the server have the final word on collision suffixes — see
-  // /v1/groups POST in apps/workbooks-broker/src/routes/groups.ts.
+  // /v1/groups POST in packages/broker/worker/src/routes/groups.ts.
   const body = {
     name,
     slug: flags.slug ?? undefined,

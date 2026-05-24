@@ -69,10 +69,32 @@ export const waveletChecks = {
     if (actualCodec !== codec) {
       return fail(`wavelet.video_renders: codec mismatch — expected ${codec}, got ${actualCodec}`, evidence);
     }
-    if (typeof params.width === "number" && actualW !== params.width) {
+    // Aspect-ratio check (preferred) — pass when the actual w:h matches
+    // the requested w:h within a 2% tolerance, even if absolute pixels
+    // differ. Veo Lite returns 720×1280 natively where Veo Standard
+    // returns 1080×1920; both are valid 9:16, and the eval shouldn't
+    // gate on the cheaper model's output size. Set `aspect_strict: true`
+    // on the spec to force exact-pixel matching.
+    if (typeof params.width === "number" && typeof params.height === "number") {
+      const wantRatio = params.width / params.height;
+      const gotRatio = actualW / actualH;
+      const ratioDiff = Math.abs(wantRatio - gotRatio) / wantRatio;
+      if (params.aspect_strict === true) {
+        if (actualW !== params.width) {
+          return fail(`wavelet.video_renders: width mismatch — expected ${params.width}, got ${actualW}`, evidence);
+        }
+        if (actualH !== params.height) {
+          return fail(`wavelet.video_renders: height mismatch — expected ${params.height}, got ${actualH}`, evidence);
+        }
+      } else if (ratioDiff > 0.02) {
+        return fail(
+          `wavelet.video_renders: aspect mismatch — expected ${params.width}:${params.height} (${wantRatio.toFixed(3)}), got ${actualW}×${actualH} (${gotRatio.toFixed(3)})`,
+          evidence,
+        );
+      }
+    } else if (typeof params.width === "number" && actualW !== params.width) {
       return fail(`wavelet.video_renders: width mismatch — expected ${params.width}, got ${actualW}`, evidence);
-    }
-    if (typeof params.height === "number" && actualH !== params.height) {
+    } else if (typeof params.height === "number" && actualH !== params.height) {
       return fail(`wavelet.video_renders: height mismatch — expected ${params.height}, got ${actualH}`, evidence);
     }
     if (typeof params.duration_secs === "number") {

@@ -11,9 +11,10 @@
 //   systemPrompt: string,
 //   tagline: string | null,
 //   tools: string[],              // pi-coding-agent tool allowlist;
-//                                 // entries of the form "composio:<toolkit>"
-//                                 // bind every action of that toolkit as a
-//                                 // callable tool at session start (caller
+//                                 // entries of the form "oauth:<toolkit>"
+//                                 // bind every action of that broker-managed
+//                                 // OAuth toolkit as a callable tool at
+//                                 // session start (caller
 //                                 // must have an active connection in
 //                                 // Studio → Integrations).
 //   extensions: string[],         // optional npm/git package specs

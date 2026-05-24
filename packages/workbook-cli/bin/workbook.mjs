@@ -49,6 +49,8 @@ async function help() {
     "  workbook call <id> <tool>  invoke a tool exposed by a workbook (--list to introspect)",
     "  workbook workgroup <action> manage a group's portal config end-to-end (pull/push)",
     "  workbook agent <action>    pull a published agent artifact (publish via `workbook publish`)",
+    "  workbook plan <sub> <file> ...",
+    "                             mutate .org plan files (ready/claim/transition/log/result/close)",
     "  workbook session <id>      export a chat session as JSON or markdown (--format=md|json)",
     "  workbook chat <agent> \"<p>\" send a prompt to one of your agents and stream the reply (--session, --json, --debug, --no-open)",
     "  workbook git <action>      substrate git ops — url / setup / clone / credential-helper",
@@ -390,6 +392,12 @@ try {
       const flags = parseFlags(argv.slice(1));
       const { runImprove } = await import("@work.books/workbench/improve");
       await runImprove(flags);
+      break;
+    }
+    case "plan": {
+      const flags = parseFlags(argv.slice(1));
+      const { runPlan } = await import(path.join(cmdRoot, "plan.mjs"));
+      await runPlan(flags);
       break;
     }
     case "help":

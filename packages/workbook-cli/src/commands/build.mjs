@@ -11,6 +11,7 @@ import { readPassphrase, assertStrongPassphrase } from "../encrypt/secrets.mjs";
 import { wrapEncrypted } from "../encrypt/wrapHtml.mjs";
 import { createSourceBundle } from "../bundle/sourceBundle.mjs";
 import { embedBundle } from "../bundle/embedSource.mjs";
+import { collectOrgFiles, embedPlans } from "../bundle/embedPlans.mjs";
 import { assertStageRecursion } from "../checks/stageRecursion.mjs";
 import { loadLocalCreds, validateBakeableCreds } from "../util/localCreds.mjs";
 
@@ -188,6 +189,25 @@ export async function runBuild(opts = {}) {
       `[workbook] bundled ${fileCount} source file(s) → ${bundleKb} KB embedded ` +
         `(unbundle with: workbook unbundle ${config.slug}.html)\n`,
     );
+  }
+
+  // wb-4vhr.16 PART 2 — embed each src/**/*.org as a discrete
+  // <script type="text/worg"> so the in-browser plan panel (wb-4vhr.17)
+  // can find them without gunzipping the whole source bundle. Skipped
+  // for encrypted artifacts (same reason as the source bundle: plain
+  // source inside an encrypted lockscreen defeats the lock). When zero
+  // .org files exist, embedPlans is a no-op — byte-identical output.
+  if (!encryptRequest) {
+    const orgFiles = await collectOrgFiles(config.root);
+    if (orgFiles.length > 0) {
+      const html = await fs.readFile(artifactPath, "utf8");
+      const withPlans = embedPlans(html, orgFiles);
+      await fs.writeFile(artifactPath, withPlans);
+      process.stdout.write(
+        `[workbook] embedded ${orgFiles.length} plan file(s) ` +
+          `→ <script type="text/worg">\n`,
+      );
+    }
   }
 
   // Encryption stage. workbookInline already wrote the artifact at

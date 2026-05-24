@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { gamutActions } from "../src/eval/actions/wavelet.mjs";
+import { waveletActions } from "../src/eval/actions/wavelet.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, "..", "..", "..", "..", "..");
@@ -105,7 +105,7 @@ exit 0
 
   let result;
   try {
-    result = await gamutActions["wavelet.commercial"](ctx, {
+    result = await waveletActions["wavelet.commercial"](ctx, {
       brief: briefPath,
       agent: "claude",
       dry_run: true,
@@ -162,7 +162,7 @@ exit 0
 
 async function runMissingBrief() {
   const ctx = await staticCtx("missing-brief");
-  const result = await gamutActions["wavelet.commercial"](ctx, {
+  const result = await waveletActions["wavelet.commercial"](ctx, {
     brief: "/nonexistent/path/brief.md",
     agent: "claude",
     dry_run: true,
@@ -199,7 +199,7 @@ exit 0
 
   let result;
   try {
-    result = await gamutActions["wavelet.commercial"](ctx, {
+    result = await waveletActions["wavelet.commercial"](ctx, {
       brief: briefPath,
       agent: "claude",
       dry_run: true,
@@ -275,7 +275,7 @@ exit 0
 
   let result;
   try {
-    result = await gamutActions["wavelet.commercial"](ctx, {
+    result = await waveletActions["wavelet.commercial"](ctx, {
       brief: briefPath,
       agent: "claude",
       dry_run: true,
@@ -336,7 +336,7 @@ exec sleep 60
   let result;
   const t0 = Date.now();
   try {
-    result = await gamutActions["wavelet.commercial"](ctx, {
+    result = await waveletActions["wavelet.commercial"](ctx, {
       brief: briefPath,
       agent: "claude",
       dry_run: true,

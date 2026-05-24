@@ -16,11 +16,13 @@
 
 import noRawArrowImport from "./rules/no-raw-arrow-import.mjs";
 import noExternalFetch from "./rules/no-external-fetch.mjs";
+import noComposioSlug from "./rules/no-composio-slug.mjs";
 
 /** @type {ReadonlyArray<Rule>} */
 export const RULES = Object.freeze([
   noRawArrowImport,
   noExternalFetch,
+  noComposioSlug,
 ]);
 
 /** @type {ReadonlyMap<string, Rule>} */

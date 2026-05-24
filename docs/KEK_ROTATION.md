@@ -28,7 +28,7 @@ The broker stays fully available throughout. No customer-visible event.
 
 ## Prerequisites
 
-- Local checkout of the broker (`apps/workbooks-broker/`).
+- Local checkout of the broker (`packages/broker/worker/`).
 - `wrangler` CLI authenticated against the deployment account.
 - Read access to the broker's D1 (`signal-workbooks-broker`).
 - A scratchpad — the runbook produces ephemeral key material that must not be persisted.
@@ -58,7 +58,7 @@ If the current value is genuinely lost (compromise scenario where the operator w
 For each environment (`staging`, `production`):
 
 ```bash
-cd apps/workbooks-broker
+cd packages/broker/worker
 
 # Bind the previous KEK as the rotation tail.
 echo -n "<current value>" | wrangler secret put BROKER_LOCAL_KEK_PREV --env <env>
@@ -76,7 +76,7 @@ curl -sS https://broker.signal.ml/v1/health
 
 ### 4. Bump the primary's `id` in `kek.ts`
 
-Edit `apps/workbooks-broker/src/lib/kek.ts`:
+Edit `packages/broker/worker/src/lib/kek.ts`:
 
 ```diff
 -  const primary = new LocalKekVersion(
@@ -195,7 +195,7 @@ INSERT INTO audit_events
 - [ ] `SELECT kek_ref, COUNT(*) FROM wrapped_keys GROUP BY kek_ref` shows only the new primary.
 - [ ] `BROKER_LOCAL_KEK_PREV` is unset in `wrangler secret list`.
 - [ ] A fresh workbook `register` → `wrap` → `release` → unwrap-on-recipient e2e completes.
-- [ ] `apps/workbooks-broker/test:e2e` passes against the rotated broker.
+- [ ] `packages/broker/worker/test:e2e` passes against the rotated broker.
 - [ ] Old KEK material is destroyed in the credential store (or clearly tagged "rotated out 2026-XX-XX, never reuse").
 
 ---
